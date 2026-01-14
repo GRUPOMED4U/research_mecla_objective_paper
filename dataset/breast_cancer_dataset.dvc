@@ -1,0 +1,6 @@
+outs:
+- md5: f749be3be166c1ea5c568c7f20629a53.dir
+  size: 8969310
+  nfiles: 2
+  hash: md5
+  path: breast_cancer_dataset
