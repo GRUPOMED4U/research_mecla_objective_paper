@@ -3509,7 +3509,7 @@ wheels = [
 ]
 
 [[package]]
-name = "research-ner-leaderboard"
+name = "research-mecla-objective-paper"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

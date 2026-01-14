@@ -10,6 +10,7 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 from transformers import AutoModelForSequenceClassification
 import yaml
 import copy
+import jsonlines
 
 from spesia_research.trainers import EarlyStoppingCallback
 
@@ -273,7 +274,11 @@ if __name__ == "__main__":
     dataset_args = copy.deepcopy(cfg["dataset_args"])
     del cfg["dataset_args"]["dataset_path"]
 
-    datasets = {"train": None, "val": None, "test": None}
+    datasets: dict[str, ClinicalRecordsDataset | None] = {
+        "train": None,
+        "val": None,
+        "test": None,
+    }
 
     for dataset_path in paths:
         dataset_args["dataset_path"] = dataset_path
@@ -530,8 +535,7 @@ if __name__ == "__main__":
                 "annotation_scheme"
             ]
 
-        # Generate plot
-        plt.figure(figsize=(12, 6))
+        # Compute metrics
         pred_output = trainer.predict(test_dataset)
         probs = 1 / (1 + np.exp(-pred_output.predictions))
         labels = pred_output.label_ids.astype(int)
@@ -564,7 +568,6 @@ if __name__ == "__main__":
                 "recall": recall,
                 "pr_auc": pr_auc,
             }
-            plt.plot(recall, precision, label=f"{label_name} (AP = {pr_auc:.3f})")
 
         macro_ap = average_precision_score(labels_flat, probs_flat, average="macro")
         micro_ap = average_precision_score(labels_flat, probs_flat, average="micro")
@@ -573,17 +576,6 @@ if __name__ == "__main__":
         print(f"Macro AP: {macro_ap:.3f}")
         print(f"Micro AP: {micro_ap:.3f}")
 
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title(
-            f"Precision-Recall Curve ({cfg['model_id']} - {cfg['dataset_args'].get('annotation_scheme', '')})"
-        )
-        plt.subplots_adjust(right=0.7)  # make room on the right for the legend
-        plt.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
-        plt.tight_layout()
-        plt.savefig(cfg["results_path"] / "precision_recall_curve.png")
-        plt.close()
-
         # Select best tresholds
         thresholds = get_best_threshold(
             threshold_map, **cfg.get("threshold_selection", {})
@@ -591,9 +583,26 @@ if __name__ == "__main__":
         trainer.model.config.thresholds = thresholds.to_dict()
 
         # Save metrics
-        metrics_path = cfg["results_path"] / "metrics.json"
-        with open(metrics_path, "w", encoding="utf-8") as f:
-            json.dump(test_set_metrics, f, indent=4, ensure_ascii=False)
+        metrics_path = cfg["results_path"] / "metrics.jsonl"
+        write_mode = (
+            "a" if metrics_path.is_file() and is_not_empty(metrics_path) else "w"
+        )
+        with jsonlines.open(metrics_path, write_mode) as writer:
+            # convert np.arrays to lists
+            threshold_map = {
+                k: {
+                    "threshold": v["threshold"].tolist(),
+                    "precision": v["precision"].tolist(),
+                    "recall": v["recall"].tolist(),
+                    "pr_auc": v["pr_auc"],
+                }
+                for k, v in threshold_map.items()
+            }
+
+            test_set_metrics["run_name"] = cfg["run_name"]
+            test_set_metrics["threshold_map"] = threshold_map
+            test_set_metrics["selected_thresholds"] = thresholds.to_dict()
+            writer.write(test_set_metrics)
 
     # Save best model
     trainer.save_model(cfg["results_path"] / "best_model")

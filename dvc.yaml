@@ -1,0 +1,7 @@
+stages:
+  baseline:
+    matrix:
+      experiment:
+        - experiments/baseline_mmbert.yaml
+      repetition: [1, 2]
+    cmd: python train.py --config ${item.experiment}

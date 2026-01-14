@@ -1,0 +1,6 @@
+schema: '2.0'
+stages:
+  baseline@experiments/baseline_mmbert.yaml-1:
+    cmd: python train.py --config experiments/baseline_mmbert.yaml
+  baseline@experiments/baseline_mmbert.yaml-2:
+    cmd: python train.py --config experiments/baseline_mmbert.yaml

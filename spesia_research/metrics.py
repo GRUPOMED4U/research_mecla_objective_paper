@@ -209,30 +209,36 @@ def get_best_threshold(
     threshold_map,
     min_precision=0.8,
     min_recall=0.7,
-    prioritize: Literal["precision", "recall"] = "precision",
+    prioritize: Literal["precision", "recall", "f1_score"] = "precision",
 ) -> ThresholdMap:
     """
     Get the best threshold for a given label based on precision and recall. Prioritizes precision by default.
 
-    Parameters
-    ----------
-    threshold_map : dict
-        A dictionary containing the precision, recall and threshold for each label.
-    min_precision : float, optional
-        The minimum precision to consider a threshold as valid. Defaults to 0.8.
-    min_recall : float, optional
-        The minimum recall to consider a threshold as valid. Defaults to 0.7.
+    Args:
+        threshold_map (dict):
+            A dictionary containing the precision, recall and threshold for each label.
+        min_precision (float, optional):
+            The minimum precision to consider a threshold as valid. Defaults to 0.8.
+        min_recall (float, optional):
+            The minimum recall to consider a threshold as valid. Defaults to 0.7.
 
-    Returns
-    -------
-    thresholds : ThresholdMap
-        A ThresholdMap object containing the best threshold, precision and recall for each label.
+    Returns:
+        thresholds (ThresholdMap): ThresholdMap
+            A ThresholdMap object containing the best threshold, precision and recall for each label.
     """
     thresholds = ThresholdMap()
+
+    # precompute f1_scores
+    for label in threshold_map.keys():
+        threshold_map[label]["f1_score"] = 2 * (
+            (threshold_map[label]["precision"] * threshold_map[label]["recall"])
+            / (threshold_map[label]["precision"] + threshold_map[label]["recall"])
+        )
 
     for label in threshold_map.keys():
         best_precision = np.array(0)
         best_threshold = np.array(1)
+        best_f1 = np.array(0)
         best_recall = np.array(0)
 
         for i, t in enumerate(threshold_map[label]["threshold"]):
@@ -245,30 +251,30 @@ def get_best_threshold(
                         best_precision = threshold_map[label]["precision"][i]
                         best_threshold = threshold_map[label]["threshold"][i]
                         best_recall = threshold_map[label]["recall"][i]
+                        best_f1 = threshold_map[label]["f1_score"][i]
                 elif prioritize == "recall":
                     if threshold_map[label]["recall"][i] >= best_recall:
                         best_precision = threshold_map[label]["precision"][i]
                         best_threshold = threshold_map[label]["threshold"][i]
                         best_recall = threshold_map[label]["recall"][i]
+                        best_f1 = threshold_map[label]["f1_score"][i]
+                elif prioritize == "f1_score":
+                    if threshold_map[label]["f1_score"][i] >= best_f1:
+                        best_precision = threshold_map[label]["precision"][i]
+                        best_threshold = threshold_map[label]["threshold"][i]
+                        best_recall = threshold_map[label]["recall"][i]
+                        best_f1 = threshold_map[label]["f1_score"][i]
                 else:
                     raise ValueError(
-                        f"'prioritize' must be 'precision' or 'recall'. Received: {prioritize}"
+                        f"'prioritize' must be 'precision' or 'recall' or 'f1_score'. Received: {prioritize}"
                     )
 
         thresholds[label] = {
             "threshold": best_threshold.item(),
             "precision": best_precision.item(),
             "recall": best_recall.item(),
-            "f1_score": (
-                2 * best_precision * best_recall / (best_precision + best_recall)
-            ).item(),
+            "f1_score": best_f1.item(),
             "pr_auc": threshold_map[label]["pr_auc"],
         }
 
     return thresholds
-
-
-def compute_metrics_sft_for_ner(eval_pred: EvalPrediction):
-    print(eval_pred)
-    print(eval_pred.model_dump())
-    pass

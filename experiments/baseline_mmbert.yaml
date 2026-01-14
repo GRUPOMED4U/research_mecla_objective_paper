@@ -1,0 +1,50 @@
+exp_name: baseline
+exp_description: "Onco NER with mmBERT Base with merged dataset containing both binary and non binary labels"
+
+model_id: jhu-clsp/mmBERT-base
+
+early_stopping_patience: 2
+
+dataset_args:
+  task: token_classification
+  dataset_path: datasets/breast_cancer_dataset
+  annotation_scheme : "IO"
+  max_length: 1024
+  custom_label_mapping:
+    {
+      'HER2_OUTROS': 'HER2_POSITIVO', # map 'HER2_OUTROS' to 'HER2_POSITIVO'
+    }
+  split_ratio:
+    train: 0.6
+    val: 0.2
+    test: 0.2
+  sample_from_split: 0.1
+
+training_args:
+  per_device_train_batch_size: 10
+  gradient_accumulation_steps: 10
+  num_train_epochs: 1
+  learning_rate: 0.00009
+  weight_decay: 0.27
+  include_for_metrics: ['inputs']
+  eval_strategy: "epoch"
+  logging_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  save_total_limit: 0
+
+threshold_selection:
+  min_recall: 0.1 
+  min_precision: 0.1
+  prioritize: "f1_score"
+
+hyperparameter_search:
+  done: true
+  metric: "eval_loss"
+  direction: "minimize"
+  best_params:
+    learning_rate: 0.00009
+    weight_decay: 0.27
+
+resume_from_checkpoint: false
