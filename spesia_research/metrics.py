@@ -209,7 +209,7 @@ def get_best_threshold(
     threshold_map,
     min_precision=0.8,
     min_recall=0.7,
-    prioritize: Literal["precision", "recall", "f1_score"] = "precision",
+    prioritize: Literal["precision", "recall", "f1_score"] = "f1_score",
 ) -> ThresholdMap:
     """
     Get the best threshold for a given label based on precision and recall. Prioritizes precision by default.
@@ -221,6 +221,8 @@ def get_best_threshold(
             The minimum precision to consider a threshold as valid. Defaults to 0.8.
         min_recall (float, optional):
             The minimum recall to consider a threshold as valid. Defaults to 0.7.
+        prioritize (str, optional):
+            The metric to prioritize when selecting the best threshold. Can be "precision", "recall" or "f1_score". Defaults to "f1_score".
 
     Returns:
         thresholds (ThresholdMap): ThresholdMap
