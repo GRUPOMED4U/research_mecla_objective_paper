@@ -30,7 +30,7 @@ from pydantic import BaseModel
 import datasets
 
 # Custom libraries
-from .config import load_config
+from .config import load_exp_config
 from .data_models import Record
 
 
@@ -294,7 +294,7 @@ class ClinicalRecordsDataset(Dataset):
         if config is not None:
             return cls(**config["dataset_args"], split=split, tokenizer=tokenizer)
         elif config_path is not None:
-            config = load_config(config_path)
+            config = load_exp_config(config_path)
             return cls(**config["dataset_args"], split=split, tokenizer=tokenizer)
         else:
             raise ValueError("Either config or config_path must be provided")
@@ -360,10 +360,12 @@ class ClinicalRecordsDataset(Dataset):
         labels_to_ignore = counts[counts < self.min_samples_per_label].index.tolist()
         labels_to_keep = counts[counts >= self.min_samples_per_label].index.tolist()
         self.labels_to_ignore = labels_to_ignore
-        print(
-            "Ignored labels during data split due to low sample count:",
-            labels_to_ignore,
-        )
+
+        if len(labels_to_ignore) > 0:
+            print(
+                "Ignored labels during data split due to low sample count:",
+                labels_to_ignore,
+            )
 
         ## Select only frequent labels
         keep_idx = [getattr(self, self.label_type).index(l) for l in labels_to_keep]

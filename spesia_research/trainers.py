@@ -1,10 +1,13 @@
+"""
+Custom trainers and callbacks for the spesia_research package
+"""
+
 from typing import Literal
 import torch
 from torchvision.ops import sigmoid_focal_loss
 
 from transformers import Trainer, TrainerState, TrainingArguments, TrainerControl
 from transformers import TrainerCallback
-from datasets import Dataset
 
 from spesia_research.loss import MECLALoss, PairwiseMECLALoss
 

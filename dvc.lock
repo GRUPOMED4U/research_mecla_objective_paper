@@ -4,3 +4,343 @@ stages:
     cmd: python train.py --config experiments/baseline_mmbert.yaml
   baseline@experiments/baseline_mmbert.yaml-2:
     cmd: python train.py --config experiments/baseline_mmbert.yaml
+  baseline_hpsearch@mmbert:
+    cmd: python hpsearch.py --config experiments/baseline_mmbert.yaml --set 
+      hyperparameter_search.0.load_if_exists=false --set 
+      hyperparameter_search.0.n_trials=1 --set 
+      dataset_args.sample_from_split=0.1 --set training_args.num_train_epochs=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: hpsearch.py
+      hash: md5
+      md5: cca12c8823d061a0e88484568b522518
+      size: 7766
+    outs:
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 57ad338baa94a5cafc7c57a06ff7c323
+      size: 167
+  baseline@mmbert-1:
+    cmd: python train.py --config experiments/baseline_mmbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set hyperparameter_search.0.load_if_exists=false --set 
+      hyperparameter_search.0.n_trials=1 --set 
+      dataset_args.sample_from_split=0.1 --set training_args.num_train_epochs=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 57ad338baa94a5cafc7c57a06ff7c323
+      size: 167
+  exp_1_mecla_hpsearch@mmbert:
+    cmd: python hpsearch.py --config experiments/exp_1_mecla_mmbert.yaml --set 
+      dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: a5db0e02c1c9afe797d9a7b730c1cf0c
+      size: 168
+    outs:
+    - path: experiments/exp_1_mecla_mmbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: a6ce8b486bd0bfde174cd131f335cea1
+      size: 142
+  exp_1_mecla@mmbert-1:
+    cmd: python train.py --config experiments/exp_1_mecla_mmbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: a5db0e02c1c9afe797d9a7b730c1cf0c
+      size: 168
+    - path: experiments/exp_1_mecla_mmbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: a6ce8b486bd0bfde174cd131f335cea1
+      size: 142
+  exp_2_mecla_hpsearch@mmbert:
+    cmd: python hpsearch.py --config experiments/exp_2_mecla_mmbert.yaml --set 
+      dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: a5db0e02c1c9afe797d9a7b730c1cf0c
+      size: 168
+    outs:
+    - path: experiments/exp_2_mecla_mmbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: dc2bb03ca90b4eb082671e68dd1e5298
+      size: 142
+  exp_2_mecla@mmbert-1:
+    cmd: python train.py --config experiments/exp_2_mecla_mmbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: a5db0e02c1c9afe797d9a7b730c1cf0c
+      size: 168
+    - path: experiments/exp_2_mecla_mmbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: dc2bb03ca90b4eb082671e68dd1e5298
+      size: 142
+  baseline_hpsearch@biobertpt:
+    cmd: python hpsearch.py --config experiments/baseline_biobertpt.yaml --set 
+      hyperparameter_search.0.load_if_exists=false --set 
+      hyperparameter_search.0.n_trials=1 --set 
+      dataset_args.sample_from_split=0.1 --set training_args.num_train_epochs=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: hpsearch.py
+      hash: md5
+      md5: cca12c8823d061a0e88484568b522518
+      size: 7766
+    outs:
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 871cc4fff9e144d37f98284af6f5d3fb
+      size: 164
+  baseline@biobertpt-1:
+    cmd: python train.py --config experiments/baseline_biobertpt.yaml --set 
+      dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 39fadd32dcaca09c3fe131f16bf20bdc
+      size: 167
+  exp_1_mecla_hpsearch@biobertpt:
+    cmd: python hpsearch.py --config experiments/exp_1_mecla_biobertpt.yaml 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 39fadd32dcaca09c3fe131f16bf20bdc
+      size: 167
+    outs:
+    - path: experiments/exp_1_mecla_biobertpt/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 1ce3af6cb012aa4e5687e4489f382807
+      size: 142
+  exp_1_mecla@biobertpt-1:
+    cmd: python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 39fadd32dcaca09c3fe131f16bf20bdc
+      size: 167
+    - path: experiments/exp_1_mecla_biobertpt/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 1ce3af6cb012aa4e5687e4489f382807
+      size: 142
+  exp_2_mecla_hpsearch@biobertpt:
+    cmd: python hpsearch.py --config experiments/exp_2_mecla_biobertpt.yaml 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 39fadd32dcaca09c3fe131f16bf20bdc
+      size: 167
+    outs:
+    - path: experiments/exp_2_mecla_biobertpt/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 803b6a44f4cfe9f95883f08ba6330819
+      size: 142
+  exp_2_mecla@biobertpt-1:
+    cmd: python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 39fadd32dcaca09c3fe131f16bf20bdc
+      size: 167
+    - path: experiments/exp_2_mecla_biobertpt/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 803b6a44f4cfe9f95883f08ba6330819
+      size: 142
+  baseline_hpsearch@modernbert:
+    cmd: python hpsearch.py --config experiments/baseline_modernbert.yaml --set 
+      hyperparameter_search.0.load_if_exists=false --set 
+      hyperparameter_search.0.n_trials=1 --set 
+      dataset_args.sample_from_split=0.1 --set training_args.num_train_epochs=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: hpsearch.py
+      hash: md5
+      md5: cca12c8823d061a0e88484568b522518
+      size: 7766
+    outs:
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: a9001ea3e363735076e88c4d91640131
+      size: 166
+  baseline@modernbert-1:
+    cmd: python train.py --config experiments/baseline_modernbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1 --set 
+      training_args.num_train_epochs=1 --set hyperparameter_search.0.n_trials=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 7d2ef33d25ee05b2485dc92bc52051e5
+      size: 167
+  exp_1_mecla_hpsearch@modernbert:
+    cmd: python hpsearch.py --config experiments/exp_1_mecla_modernbert.yaml 
+      --set dataset_args.sample_from_split=0.1 --set 
+      training_args.num_train_epochs=1 --set hyperparameter_search.0.n_trials=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 7d2ef33d25ee05b2485dc92bc52051e5
+      size: 167
+    outs:
+    - path: experiments/exp_1_mecla_modernbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 4269e7f3be5d7001769f6d0cf129f64a
+      size: 142
+  exp_1_mecla@modernbert-1:
+    cmd: python train.py --config experiments/exp_1_mecla_modernbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1 --set 
+      training_args.num_train_epochs=1 --set hyperparameter_search.0.n_trials=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 7d2ef33d25ee05b2485dc92bc52051e5
+      size: 167
+    - path: experiments/exp_1_mecla_modernbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: 4269e7f3be5d7001769f6d0cf129f64a
+      size: 142
+  exp_2_mecla_hpsearch@modernbert:
+    cmd: python hpsearch.py --config experiments/exp_2_mecla_modernbert.yaml 
+      --set dataset_args.sample_from_split=0.1 --set 
+      training_args.num_train_epochs=1 --set hyperparameter_search.0.n_trials=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 7d2ef33d25ee05b2485dc92bc52051e5
+      size: 167
+    outs:
+    - path: experiments/exp_2_mecla_modernbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: ce516c06ba021a5ab2343670201a24ff
+      size: 142
+  exp_2_mecla@modernbert-1:
+    cmd: python train.py --config experiments/exp_2_mecla_modernbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set dataset_args.sample_from_split=0.1 --set 
+      training_args.num_train_epochs=1 --set hyperparameter_search.0.n_trials=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_modernbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 7d2ef33d25ee05b2485dc92bc52051e5
+      size: 167
+    - path: experiments/exp_2_mecla_modernbert/hpsearch_eval_macro_pr_auc.jsonl
+      hash: md5
+      md5: ce516c06ba021a5ab2343670201a24ff
+      size: 142
+  baseline@mmbert-2:
+    cmd: python train.py --config experiments/baseline_mmbert.yaml --set 
+      dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
+      --set hyperparameter_search.0.load_if_exists=false --set 
+      hyperparameter_search.0.n_trials=1 --set 
+      dataset_args.sample_from_split=0.1 --set training_args.num_train_epochs=1
+    deps:
+    - path: datasets/breast_cancer_dataset
+      hash: md5
+      md5: 9121b8b4980091699367f50bb9f3ff65.dir
+      size: 8969283
+      nfiles: 1
+    - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+      hash: md5
+      md5: 57ad338baa94a5cafc7c57a06ff7c323
+      size: 167

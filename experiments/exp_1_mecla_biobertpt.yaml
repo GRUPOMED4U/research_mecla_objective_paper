@@ -1,10 +1,13 @@
-exp_name: baseline_mmbert
-model_id: jhu-clsp/mmBERT-base
+exp_name: exp_1_mecla_biobertpt
+model_id: pucpr/biobertpt-all
 
+baseline_exp: baseline_biobertpt
 load_best_params_from_hpsearch: true
 best_params_paths: 
   training_args:
-    - experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
+    - experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+  trainer_args:
+    - experiments/exp_1_mecla_biobertpt/hpsearch_eval_macro_pr_auc.jsonl
 
 early_stopping_patience: 3
 
@@ -12,10 +15,10 @@ dataset_args:
   task: token_classification
   dataset_path: datasets/breast_cancer_dataset
   annotation_scheme : "IO"
-  max_length: 1024
+  max_length: 512
   custom_label_mapping:
     {
-      'HER2_OUTROS': 'HER2_POSITIVO',
+      'HER2_OUTROS': 'HER2_POSITIVO', # map 'HER2_OUTROS' to 'HER2_POSITIVO'
     }
   split_ratio:
     train: 0.6
@@ -35,7 +38,12 @@ training_args:
   save_total_limit: 0
 
 trainer_args:
-  loss_type: "bce"
+  loss_type: "bce_with_mecla"
+  mutually_exclusive_classes: [
+    ['HER2_POSITIVO', 'HER2_NEGATIVO'],
+    ['RE_POSITIVO', 'RE_NEGATIVO'],
+    ['RP_POSITIVO', 'RP_NEGATIVO'],
+  ]
 
 threshold_selection:
   min_recall: 0.1 
@@ -46,24 +54,17 @@ hyperparameter_search:
   0:
     n_trials: 20
     metrics: 
-      - "eval_loss"
+      - "eval_macro_pr_auc"
     directions: 
-      - "minimize"
+      - "maximize"
     load_if_exists: true
     parameters:
-      learning_rate:
+      mecla_amplification_factor:
         method: "suggest_float"
         args:
-          name: "learning_rate"
-          low: 0.00001
-          high: 0.001
-          log: true
-      weight_decay:
-        method: "suggest_float"
-        args:
-          name: "weight_decay"
+          name: "mecla_amplification_factor"
           low: 0.01
-          high: 0.5
+          high: 10.0
           log: true
 
 resume_from_checkpoint: false

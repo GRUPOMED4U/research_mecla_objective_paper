@@ -1,184 +1,139 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import uuid
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List
-from matplotlib import pyplot as plt
+from typing import Any, Dict
 from sklearn.metrics import average_precision_score, precision_recall_curve
 from transformers import AutoModelForSequenceClassification
-import yaml
 import copy
 import jsonlines
 
+from spesia_research.config import load_exp_config
+from spesia_research.logs import configure_logging, get_logger
 from spesia_research.trainers import EarlyStoppingCallback
+
+
+def coerce_scalar(s: str) -> Any:
+    # Convenience: bare true/false/none
+    """
+    Convenience function to convert a string to a scalar type (int, float, bool, None)
+    If the string is "true" or "false", it will be converted to a bool.
+    If the string is "none" or "null", it will be converted to None.
+    If the string contains a ".", "e", or "E", it will be converted to a float.
+    Otherwise, it will be converted to an int if possible, or left as a string if not.
+
+    Args:
+        s (str): The string to convert.
+
+    Returns:
+        Any: The converted scalar type.
+    """
+    low = s.lower()
+    if low in ("true", "false"):
+        return low == "true"
+    if low in ("none", "null"):
+        return None
+
+    # Try int/float
+    try:
+        if "." in s or "e" in s.lower():
+            return float(s)
+        return int(s)
+    except Exception:
+        return s  # fallback to raw string
+
+
+def deep_merge(dict1, dict2):
+    """
+    Recursively merges dict2 into dict1.
+    Values in dict2 will overwrite values in dict1 for non-dict types.
+    """
+    merged = dict1.copy()
+    for key, value in dict2.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            # Recursively merge if both values are dictionaries
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            # Overwrite or add the value from dict2
+            merged[key] = value
+    return merged
+
+
+def set_nested(d: dict, dotted_key: str, value: Any) -> None:
+    """
+    Set a value in a nested dictionary using a dotted key.
+
+    For example, if d = {} and dotted_key = "a.b.c", then set_nested(d, dotted_key, 1)
+    will result in d = {"a": {"b": {"c": 1}}.
+
+    Args:
+        d (dict): The dictionary to modify.
+        dotted_key (str): The dotted key to set the value for.
+        value (Any): The value to set.
+
+    Returns:
+        None
+    """
+    parts = dotted_key.split(".")
+    new_dict = value
+    for p in parts[::-1]:
+        new_dict = {p: new_dict}
+    d.update(new_dict)
+
+
+def parse_kv_list(kvs: list[str]) -> dict:
+    """
+    Parse a list of key-value pairs into a dictionary.
+
+    Args:
+        kvs (list[str]): A list of key-value pairs in the format "key=value".
+
+    Returns:
+        dict: A dictionary containing the parsed key-value pairs.
+
+    Raises:
+        SystemExit: If a key-value pair is malformed (e.g. lacks "=").
+    """
+    out: dict = {}
+    for item in kvs:
+        if "=" not in item:
+            raise SystemExit(f"Invalid --set '{item}'. Expected key=value.")
+        k, v = item.split("=", 1)
+        set_nested(out, k.strip(), coerce_scalar(v.strip()))
+    return out
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="train",
+        prog="hpsearch",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--config", type=str, help="Path to YAML/JSON config file")
-    mode.add_argument(
-        "--cli",
-        action="store_true",
-        help="Provide full config via CLI options (no --config)",
-    )
-
-    # ----- Top-level -----
-    p.add_argument("--model-id", type=str)
-    p.add_argument("--use-bidirectional-llama", action="store_true")
-    p.add_argument("--max-length", type=int, default=512)
-    p.add_argument("--early-stopping-patience", type=int, default=2)
-    p.add_argument("--run-name", type=str, default=uuid.uuid4().hex[:8])
-
-    # ----- Dataset args -----
-    dataset_args_group = p.add_argument_group("Dataset args")
-    dataset_args_group.add_argument("--dataset-path", type=str)
-    dataset_args_group.add_argument("--labels-to-consider", nargs="+")
-    dataset_args_group.add_argument("--annotation-scheme", choices=["IO", "BIO"])
-
-    # ----- Training args -----
-    training_args_group = p.add_argument_group("Training args")
-    training_args_group.add_argument("--output-dir", type=str, default="./output")
-    training_args_group.add_argument("--per-device-train-batch-size", type=int)
-    training_args_group.add_argument("--gradient-accumulation-steps", type=int)
-    training_args_group.add_argument("--num-train-epochs", type=int)
-    training_args_group.add_argument("--learning-rate", type=float)
-    training_args_group.add_argument("--weight-decay", type=float, default=None)
-    training_args_group.add_argument("--include-for-metrics", nargs="*", default=None)
-    training_args_group.add_argument(
-        "--eval-strategy", choices=["no", "steps", "epoch"], default="epoch"
-    )
-    training_args_group.add_argument(
-        "--logging-strategy", choices=["no", "steps", "epoch"], default="epoch"
-    )
-    training_args_group.add_argument(
-        "--save-strategy", choices=["no", "steps", "epoch"], default="epoch"
-    )
-    training_args_group.add_argument(
-        "--load-best-model-at-end", action="store_true", default=True
-    )
-    training_args_group.add_argument(
-        "--metric-for-best-model", type=str, default="eval_loss"
-    )
-
-    # ----- LoRA args -----
-    lora_args_group = p.add_argument_group("LoRA args")
-    lora_args_group.add_argument("--use-lora", action="store_true")
-    lora_args_group.add_argument("--lora-r", type=int, default=16)
-    lora_args_group.add_argument("--lora-alpha", type=int, default=16)
-    lora_args_group.add_argument(
-        "--lora-target-modules", nargs="+", default="all-linear"
-    )
-    lora_args_group.add_argument("--lora-dropout", type=float, default=0.1)
-    lora_args_group.add_argument("--lora-bias", type=str, default="none")
-    lora_args_group.add_argument(
-        "--lora-modules-to-save", nargs="+", default=["classifier"]
+    p.add_argument(
+        "--set",
+        "-s",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Override any config value. Repeatable. Supports dotted keys.",
     )
 
     return p
 
 
-def _load_config(path: str) -> Dict[str, Any]:
-    p = Path(path)
-    if not p.exists():
-        raise FileNotFoundError(path)
-
-    cfg = {}
-    if p.suffix.lower() in {".yaml", ".yml"}:
-        if yaml is None:
-            raise RuntimeError("PyYAML not installed. pip install pyyaml")
-        cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-
-    if p.suffix.lower() == ".json":
-        cfg = json.loads(p.read_text(encoding="utf-8"))
-
-    cfg["run_name"] = cfg.get("run_name", Path(path).stem)
-    return cfg
-
-
-def _require_all(
-    parser: argparse.ArgumentParser, args: argparse.Namespace, fields: List[str]
-) -> None:
-    missing = [f for f in fields if getattr(args, f) in (None, [])]
-    if missing:
-        parser.error(
-            "Missing required CLI args (in --cli mode): "
-            + ", ".join(f"--{m.replace('_', '-')}" for m in missing)
-        )
-
-
 def parse_config() -> Dict[str, Any]:
     parser = build_parser()
     args = parser.parse_args()
-
-    if args.config:
-        results_path = Path("experiments") / Path(args.config).stem
-        results_path.mkdir(exist_ok=True)
-        parser_data = _load_config(args.config)
-        parser_data["results_path"] = results_path
-        return parser_data
-
-    # --cli mode: enforce everything is present
-    required_fields = [
-        "model_id",
-        "dataset_path",
-        "tags_to_consider",
-        "annotation_scheme",
-        "per_device_train_batch_size",
-        "gradient_accumulation_steps",
-        "num_train_epochs",
-        "learning_rate",
-    ]
-    _require_all(parser, args, required_fields)
-
-    parser_data = {
-        "model_id": args.model_id,
-        "use_bidirectional_llama": args.use_bidirectional_llama,
-        "max_length": args.max_length,
-        "early_stopping_patience": args.early_stopping_patience,
-        "run_name": args.run_name,
-        "dataset_args": {
-            "dataset_path": args.dataset_path,
-            "tags_to_consider": args.tags_to_consider,
-            "annotation_scheme": args.annotation_scheme,
-        },
-        "training_args": {
-            "output_dir": args.output_dir,
-            "per_device_train_batch_size": args.per_device_train_batch_size,
-            "gradient_accumulation_steps": args.gradient_accumulation_steps,
-            "num_train_epochs": args.num_train_epochs,
-            "learning_rate": args.learning_rate,
-            "weight_decay": args.weight_decay,
-            "include_for_metrics": args.include_for_metrics or [],
-            "eval_strategy": args.eval_strategy,
-            "logging_strategy": args.logging_strategy,
-            "save_strategy": args.save_strategy,
-            "load_best_model_at_end": bool(args.load_best_model_at_end),
-            "metric_for_best_model": args.metric_for_best_model,
-        },
-    }
-
-    if args.use_lora:
-        parser_data["lora_config"] = {
-            "r": args.lora_r,
-            "alpha": args.lora_alpha,
-            "target_modules": args.lora_target_modules,
-            "dropout": args.lora_dropout,
-            "bias": args.lora_bias,
-            "modules_to_save": args.lora_modules_to_save,
-        }
-
-    results_path = Path("experiments") / parser_data["run_name"]
+    overrides = parse_kv_list(args.set)
+    config = load_exp_config(args.config)
+    config = deep_merge(config, overrides)
+    results_path = Path("experiments") / Path(args.config).stem
     results_path.mkdir(exist_ok=True)
-    parser_data = _load_config(args.config)
-    parser_data["results_path"] = results_path
-    return parser_data
+    config["results_path"] = results_path
+    return config
 
 
 def is_not_empty(p: Path) -> bool:
@@ -220,6 +175,10 @@ if __name__ == "__main__":
         BidirectionalLlamaForCausalLM,
     )
     from spesia_research.data_models import AgentAnnotationsList
+
+    # Configure logging
+    configure_logging()
+    logger = get_logger("train")
 
     cfg = parse_config()
 
@@ -338,6 +297,45 @@ if __name__ == "__main__":
 
     if cfg["dataset_args"].get("count_tokens"):
         print(f"Total training tokens: {train_dataset.total_tokens}")
+
+    # Load best params from hpsearch if available
+    if cfg.get("load_best_params_from_hpsearch", False):
+        logger.info("Loading best params from hpsearch...")
+        for path in cfg["best_params_paths"].get("training_args", []):
+            best_training_args_params_path = Path(path)
+            if not best_training_args_params_path.exists():
+                logger.warning(
+                    f"Best training args params path {best_training_args_params_path} does not exist. Skipping..."
+                )
+                continue
+            best_training_args_params = json.load(
+                open(best_training_args_params_path, "r")
+            )
+            cfg["training_args"].update(best_training_args_params["best_trial_params"])
+            logger.info(
+                f"Training args: Loaded best params from {best_training_args_params_path}"
+            )
+            logger.info(
+                f"Best params: {best_training_args_params['best_trial_params']}"
+            )
+            logger.info(f"Training args: {cfg['training_args']}")
+
+        for path in cfg["best_params_paths"].get("trainer_args", []):
+            best_trainer_args_params_path = Path(path)
+            if not best_trainer_args_params_path.exists():
+                logger.warning(
+                    f"Best trainer args params path {best_trainer_args_params_path} does not exist. Skipping..."
+                )
+                continue
+            best_trainer_args_params = json.load(
+                open(best_trainer_args_params_path, "r")
+            )
+            cfg["trainer_args"].update(best_trainer_args_params["best_trial_params"])
+            logger.info(
+                f"Trainer args: Loaded best params from {best_trainer_args_params_path}"
+            )
+            logger.info(f"Best params: {best_trainer_args_params['best_trial_params']}")
+            logger.info(f"Trainer args: {cfg['trainer_args']}")
 
     # Load training arguments
     if cfg["dataset_args"].get("task") == "supervised_fine_tuning":

@@ -4,3 +4,5 @@
 __pycache__
 .pytest_cache
 .venv
+/experiments/**/best_model
+/experiments/**/checkpoints
