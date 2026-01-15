@@ -6,3 +6,4 @@ __pycache__
 .venv
 /experiments/**/best_model
 /experiments/**/checkpoints
+optuna.db

@@ -22,8 +22,8 @@ stages:
     outs:
     - path: experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
       hash: md5
-      md5: 57ad338baa94a5cafc7c57a06ff7c323
-      size: 167
+      md5: 688610a5e8717e342db3e714802f8f28
+      size: 165
   baseline@mmbert-1:
     cmd: python train.py --config experiments/baseline_mmbert.yaml --set 
       dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 
