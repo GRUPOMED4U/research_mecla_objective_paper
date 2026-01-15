@@ -1,0 +1,69 @@
+exp_name: baseline_biobertpt
+model_id: pucpr/biobertpt-all
+
+load_best_params_from_hpsearch: true
+best_params_paths: 
+  training_args:
+    - experiments/baseline_biobertpt/hpsearch_eval_loss.jsonl
+
+early_stopping_patience: 3
+
+dataset_args:
+  task: token_classification
+  dataset_path: datasets/breast_cancer_dataset
+  annotation_scheme : "IO"
+  max_length: 512
+  custom_label_mapping:
+    {
+      'HER2_OUTROS': 'HER2_POSITIVO',
+    }
+  split_ratio:
+    train: 0.6
+    val: 0.2
+    test: 0.2
+
+training_args:
+  per_device_train_batch_size: 10
+  gradient_accumulation_steps: 10
+  num_train_epochs: 10
+  include_for_metrics: ['inputs']
+  eval_strategy: "epoch"
+  logging_strategy: "epoch"
+  save_strategy: "epoch"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  save_total_limit: 0
+
+trainer_args:
+  loss_type: "bce"
+
+threshold_selection:
+  min_recall: 0.1 
+  min_precision: 0.1
+  prioritize: "f1_score"
+
+hyperparameter_search:
+  0:
+    n_trials: 20
+    metrics: 
+      - "eval_loss"
+    directions: 
+      - "minimize"
+    load_if_exists: true
+    parameters:
+      learning_rate:
+        method: "suggest_float"
+        args:
+          name: "learning_rate"
+          low: 0.00001
+          high: 0.001
+          log: true
+      weight_decay:
+        method: "suggest_float"
+        args:
+          name: "weight_decay"
+          low: 0.01
+          high: 0.5
+          log: true
+
+resume_from_checkpoint: false

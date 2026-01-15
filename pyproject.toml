@@ -1,5 +1,5 @@
 [project]
-name = "research-ner-leaderboard"
+name = "research_mecla_objective_paper"
 version = "0.1.0"
 description = "Biblioteca para treino, avaliação e distribuição de modelos de NER da Spesia."
 readme = "README.md"
