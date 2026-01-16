@@ -60,7 +60,7 @@ def deep_merge(dict1, dict2):
     return merged
 
 
-def set_nested(d: dict, dotted_key: str, value: Any) -> None:
+def set_nested(d: dict, dotted_key: str, value: Any) -> dict:
     """
     Set a value in a nested dictionary using a dotted key.
 
@@ -79,7 +79,8 @@ def set_nested(d: dict, dotted_key: str, value: Any) -> None:
     new_dict = value
     for p in parts[::-1]:
         new_dict = {p: new_dict}
-    d.update(new_dict)
+    d = deep_merge(d, new_dict)
+    return d
 
 
 def parse_kv_list(kvs: list[str]) -> dict:
@@ -96,11 +97,12 @@ def parse_kv_list(kvs: list[str]) -> dict:
         SystemExit: If a key-value pair is malformed (e.g. lacks "=").
     """
     out: dict = {}
+    print(f"kvs: {kvs}")
     for item in kvs:
         if "=" not in item:
             raise SystemExit(f"Invalid --set '{item}'. Expected key=value.")
         k, v = item.split("=", 1)
-        set_nested(out, k.strip(), coerce_scalar(v.strip()))
+        out = set_nested(out, k.strip(), coerce_scalar(v.strip()))
     return out
 
 
@@ -238,6 +240,9 @@ if __name__ == "__main__":
         "val": None,
         "test": None,
     }
+
+    logger.info(f"Dataset args: {dataset_args}")
+    raise
 
     for dataset_path in paths:
         dataset_args["dataset_path"] = dataset_path
