@@ -25,6 +25,8 @@ stages:
     deps:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - datasets/breast_cancer_dataset
+    outs:
+      - experiments/baseline_${item.experiment}/metrics.jsonl
 
   exp_1_mecla_hpsearch:
     matrix:
@@ -45,6 +47,8 @@ stages:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
       - datasets/breast_cancer_dataset
+    outs:
+      - experiments/exp_1_mecla_${item.experiment}/metrics.jsonl
 
   exp_2_mecla_hpsearch:
     matrix:
@@ -65,3 +69,5 @@ stages:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
       - datasets/breast_cancer_dataset
+    outs:
+      - experiments/exp_2_mecla_${item.experiment}/metrics.jsonl

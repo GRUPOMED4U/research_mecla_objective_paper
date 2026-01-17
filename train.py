@@ -97,7 +97,6 @@ def parse_kv_list(kvs: list[str]) -> dict:
         SystemExit: If a key-value pair is malformed (e.g. lacks "=").
     """
     out: dict = {}
-    print(f"kvs: {kvs}")
     for item in kvs:
         if "=" not in item:
             raise SystemExit(f"Invalid --set '{item}'. Expected key=value.")
@@ -242,7 +241,6 @@ if __name__ == "__main__":
     }
 
     logger.info(f"Dataset args: {dataset_args}")
-    raise
 
     for dataset_path in paths:
         dataset_args["dataset_path"] = dataset_path
