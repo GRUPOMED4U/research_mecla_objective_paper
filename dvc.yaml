@@ -21,7 +21,7 @@ stages:
     matrix:
       experiment: ${models}
       repetitions: ${repetitions}
-    cmd: python train.py --config experiments/baseline_${item.experiment}.yaml --set dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 ${global_options}
+    cmd: python train.py --config experiments/baseline_${item.experiment}.yaml ${global_options}
     deps:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - datasets/breast_cancer_dataset
@@ -42,7 +42,7 @@ stages:
     matrix:
       experiment: ${models}
       repetitions: ${repetitions}
-    cmd: python train.py --config experiments/exp_1_mecla_${item.experiment}.yaml --set dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 ${global_options}
+    cmd: python train.py --config experiments/exp_1_mecla_${item.experiment}.yaml ${global_options}
     deps:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
@@ -64,7 +64,7 @@ stages:
     matrix:
       experiment: ${models}
       repetitions: ${repetitions}
-    cmd: python train.py --config experiments/exp_2_mecla_${item.experiment}.yaml --set dataset_args.split_ratio.train=0.8 --set dataset_args.split_ratio.val=0.0 ${global_options}
+    cmd: python train.py --config experiments/exp_2_mecla_${item.experiment}.yaml ${global_options}
     deps:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
       - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
