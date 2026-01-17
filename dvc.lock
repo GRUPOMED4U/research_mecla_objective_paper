@@ -22,8 +22,7 @@ stages:
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
   baseline@mmbert-1:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -34,11 +33,6 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   exp_1_mecla_hpsearch@mmbert:
     cmd: 'python hpsearch.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
@@ -57,8 +51,7 @@ stages:
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
   exp_1_mecla@mmbert-1:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -73,11 +66,6 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_2_mecla_hpsearch@mmbert:
     cmd: 'python hpsearch.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
@@ -96,8 +84,7 @@ stages:
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
   exp_2_mecla@mmbert-1:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -112,11 +99,6 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   baseline_hpsearch@biobertpt:
     cmd: 'python hpsearch.py --config experiments/baseline_biobertpt.yaml '
     deps:
@@ -135,8 +117,7 @@ stages:
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
   baseline@biobertpt-1:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -147,11 +128,6 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   exp_1_mecla_hpsearch@biobertpt:
     cmd: 'python hpsearch.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
@@ -170,8 +146,7 @@ stages:
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
   exp_1_mecla@biobertpt-1:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -186,11 +161,6 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_2_mecla_hpsearch@biobertpt:
     cmd: 'python hpsearch.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
@@ -209,8 +179,7 @@ stages:
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
   exp_2_mecla@biobertpt-1:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -225,11 +194,6 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   baseline_hpsearch@modernbert:
     cmd: 'python hpsearch.py --config experiments/baseline_modernbert.yaml '
     deps:
@@ -248,8 +212,7 @@ stages:
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
   baseline@modernbert-1:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -260,11 +223,6 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   exp_1_mecla_hpsearch@modernbert:
     cmd: 'python hpsearch.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
@@ -283,8 +241,7 @@ stages:
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
   exp_1_mecla@modernbert-1:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -299,11 +256,6 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_2_mecla_hpsearch@modernbert:
     cmd: 'python hpsearch.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
@@ -322,8 +274,7 @@ stages:
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
   exp_2_mecla@modernbert-1:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -338,14 +289,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   baseline@mmbert-2:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -356,14 +301,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-3:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -374,14 +313,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-4:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -392,14 +325,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-5:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -410,14 +337,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-6:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -428,14 +349,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-7:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -446,14 +361,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-8:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -464,14 +373,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-9:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -482,14 +385,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@mmbert-10:
-    cmd: 'python train.py --config experiments/baseline_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -500,14 +397,8 @@ stages:
       hash: md5
       md5: 4b7c95a50650cdda897f681d37457fca
       size: 168
-    outs:
-    - path: experiments/baseline_mmbert/metrics.jsonl
-      hash: md5
-      md5: ba5dc529c17c92d3180ce36bb6c3d4c9
-      size: 3784888538
   baseline@biobertpt-2:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -518,14 +409,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-3:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -536,14 +421,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-4:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -554,14 +433,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-5:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -572,14 +445,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-6:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -590,14 +457,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-7:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -608,14 +469,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-8:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -626,14 +481,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-9:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -644,14 +493,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@biobertpt-10:
-    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -662,14 +505,8 @@ stages:
       hash: md5
       md5: 36846563700eff81d81e705fda7e493e
       size: 167
-    outs:
-    - path: experiments/baseline_biobertpt/metrics.jsonl
-      hash: md5
-      md5: fb66119789acf26d2cad96a0ceb95592
-      size: 207690220
   baseline@modernbert-2:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -680,14 +517,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-3:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -698,14 +529,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-4:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -716,14 +541,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-5:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -734,14 +553,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-6:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -752,14 +565,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-7:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -770,14 +577,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-8:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -788,14 +589,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-9:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -806,14 +601,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   baseline@modernbert-10:
-    cmd: 'python train.py --config experiments/baseline_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/baseline_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -824,14 +613,8 @@ stages:
       hash: md5
       md5: fcf248c6a05753292b681c49dafdc5e5
       size: 167
-    outs:
-    - path: experiments/baseline_modernbert/metrics.jsonl
-      hash: md5
-      md5: b4a562d82cfdd90e8ae8665fe45e7e0f
-      size: 3764049475
   exp_1_mecla@mmbert-2:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -846,14 +629,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-3:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -868,14 +645,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-4:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -890,14 +661,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-5:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -912,14 +677,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-6:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -934,14 +693,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-7:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -956,14 +709,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-8:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -978,14 +725,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-9:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1000,14 +741,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@mmbert-10:
-    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1022,14 +757,8 @@ stages:
       hash: md5
       md5: dd50ba0cc6e51b3670fbb04f9dba5602
       size: 140
-    outs:
-    - path: experiments/exp_1_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: d43ae188d3c32b3b61a76bb3bffca14d
-      size: 3736381798
   exp_1_mecla@biobertpt-2:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1044,14 +773,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-3:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1066,14 +789,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-4:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1088,14 +805,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-5:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1110,14 +821,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-6:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1132,14 +837,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-7:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1154,14 +853,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-8:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1176,14 +869,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-9:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1198,14 +885,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@biobertpt-10:
-    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1220,14 +901,8 @@ stages:
       hash: md5
       md5: d790e1350e9eaf97afcea56da70bffef
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: 07686ac3773296f827423c00f4c02fe9
-      size: 16711480
   exp_1_mecla@modernbert-2:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1242,14 +917,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-3:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1264,14 +933,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-4:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1286,14 +949,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-5:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1308,14 +965,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-6:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1330,14 +981,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-7:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1352,14 +997,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-8:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1374,14 +1013,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-9:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1396,14 +1029,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_1_mecla@modernbert-10:
-    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_1_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1418,14 +1045,8 @@ stages:
       hash: md5
       md5: 5d7cc824b9973874cf58abb51df7632a
       size: 141
-    outs:
-    - path: experiments/exp_1_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: fdd609b9ac6536b3394363f7098de309
-      size: 3800058152
   exp_2_mecla@mmbert-2:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1440,14 +1061,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-3:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1462,14 +1077,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-4:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1484,14 +1093,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-5:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1506,14 +1109,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-6:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1528,14 +1125,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-7:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1550,14 +1141,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-8:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1572,14 +1157,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-9:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1594,14 +1173,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@mmbert-10:
-    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_mmbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1616,14 +1189,8 @@ stages:
       hash: md5
       md5: 4bc59cff52a3d141ff92f16bdd7bad32
       size: 141
-    outs:
-    - path: experiments/exp_2_mecla_mmbert/metrics.jsonl
-      hash: md5
-      md5: 75db84e026d605905daa51cb0f26f17f
-      size: 3726261878
   exp_2_mecla@biobertpt-2:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1638,14 +1205,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-3:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1660,14 +1221,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-4:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1682,14 +1237,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-5:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1704,14 +1253,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-6:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1726,14 +1269,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-7:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1748,14 +1285,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-8:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1770,14 +1301,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-9:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1792,14 +1317,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@biobertpt-10:
-    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_biobertpt.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1814,14 +1333,8 @@ stages:
       hash: md5
       md5: b406c719a07b564fab6a547f5a854153
       size: 144
-    outs:
-    - path: experiments/exp_2_mecla_biobertpt/metrics.jsonl
-      hash: md5
-      md5: a679abec543956c3d1672c3814018c0a
-      size: 133261006
   exp_2_mecla@modernbert-2:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1836,14 +1349,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-3:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1858,14 +1365,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-4:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1880,14 +1381,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-10:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1902,14 +1397,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-7:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1924,14 +1413,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-8:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1946,14 +1429,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-5:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1968,14 +1445,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-9:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -1990,14 +1461,8 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
   exp_2_mecla@modernbert-6:
-    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml --set dataset_args.split_ratio.train=0.8
-      --set dataset_args.split_ratio.val=0.0 '
+    cmd: 'python train.py --config experiments/exp_2_mecla_modernbert.yaml '
     deps:
     - path: datasets/breast_cancer_dataset
       hash: md5
@@ -2012,8 +1477,3 @@ stages:
       hash: md5
       md5: 34f70de588ad9edbc295afbd3d4a40d0
       size: 139
-    outs:
-    - path: experiments/exp_2_mecla_modernbert/metrics.jsonl
-      hash: md5
-      md5: e2f21ef84fbe514fd20696f400296d03
-      size: 3780543767
