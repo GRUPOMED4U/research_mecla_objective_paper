@@ -55,13 +55,8 @@ if __name__ == "__main__":
     # Load config and custom options
     args = build_parser().parse_args()
     overrides = parse_kv_list(args.set)
-
-    print(overrides)
-
     config = load_exp_config(args.config)
     config = deep_merge(config, overrides)
-
-    print(config)
 
     # Global variables and set directories
     exp_path = Path(args.config)
@@ -97,14 +92,17 @@ if __name__ == "__main__":
         datasets["test"],
     )
 
+    logger.info(f"Dataset args: {config['dataset_args']}")
+
     # Define optuna study
     for hpsearch_config in config.get("hyperparameter_search", {}).values():
-        study_name = f"{exp_path.stem}_{'_'.join(hpsearch_config['metrics'])}"
+        study_name = f"{exp_path.stem}_{'_'.join(hpsearch_config['metrics'])}_data_split_seed_{train_dataset.random_seed}"
         storage_path = "sqlite:///optuna.db"
 
         # skip if already done
         hpsearch_path = (
-            results_path / f"hpsearch_{'_'.join(hpsearch_config['metrics'])}.jsonl"
+            results_path
+            / f"hpsearch_{'_'.join(hpsearch_config['metrics'])}_data_split_seed_{train_dataset.random_seed}.jsonl"
         )
         if hpsearch_path.exists():
             logger.info(

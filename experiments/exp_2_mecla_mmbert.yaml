@@ -54,9 +54,9 @@ hyperparameter_search:
   0:
     n_trials: 20
     metrics: 
-      - "eval_macro_pr_auc"
+      - "eval_loss"
     directions: 
-      - "maximize"
+      - "minimize"
     load_if_exists: true
     parameters:
       mecla_amplification_factor:
