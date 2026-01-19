@@ -181,18 +181,18 @@ if __name__ == "__main__":
     configure_logging()
     logger = get_logger("train")
 
-    cfg = parse_config()
+    config = parse_config()
 
     # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(cfg["model_id"], use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(config["model_id"], use_fast=True)
     if not tokenizer.pad_token:
         tokenizer.pad_token = tokenizer.eos_token
 
     # Extend tokenizer option
-    if cfg.get("extend_tokenizer"):
+    if config.get("extend_tokenizer"):
         print("Extending tokenizer...")
         # Prepare training data
-        tokenizer_training_data_filepaths = cfg.get(
+        tokenizer_training_data_filepaths = config.get(
             "tokenizer_training_data_filepaths", []
         )
         assert len(tokenizer_training_data_filepaths) > 0, (
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         )
 
         # Train new tokenizer
-        new_tokenizer_vocab_size = cfg.get("new_tokenizer_vocab_size", 3000)
+        new_tokenizer_vocab_size = config.get("new_tokenizer_vocab_size", 3000)
         new_tokenizer = tokenizer.train_new_from_iterator(
             tokenizer_training_dataset["text"], new_tokenizer_vocab_size
         )
@@ -227,12 +227,14 @@ if __name__ == "__main__":
 
     # Load datasets
     # Handle the possibility of merging multiple datasets
-    if isinstance(cfg["dataset_args"]["dataset_path"], str):
-        cfg["dataset_args"]["dataset_path"] = [cfg["dataset_args"]["dataset_path"]]
+    if isinstance(config["dataset_args"]["dataset_path"], str):
+        config["dataset_args"]["dataset_path"] = [
+            config["dataset_args"]["dataset_path"]
+        ]
 
-    paths = cfg["dataset_args"]["dataset_path"]
-    dataset_args = copy.deepcopy(cfg["dataset_args"])
-    del cfg["dataset_args"]["dataset_path"]
+    paths = config["dataset_args"]["dataset_path"]
+    dataset_args = copy.deepcopy(config["dataset_args"])
+    del config["dataset_args"]["dataset_path"]
 
     datasets: dict[str, ClinicalRecordsDataset | None] = {
         "train": None,
@@ -244,7 +246,7 @@ if __name__ == "__main__":
 
     for dataset_path in paths:
         dataset_args["dataset_path"] = dataset_path
-        if cfg["dataset_args"].get("task") == "masked_language_modeling":
+        if config["dataset_args"].get("task") == "masked_language_modeling":
             current_train_dataset = ClinicalRecordsDataset(
                 tokenizer=tokenizer, **dataset_args
             )
@@ -254,7 +256,7 @@ if __name__ == "__main__":
             else:
                 datasets["train"].extend(current_train_dataset)
 
-        elif cfg["dataset_args"].get("task") == "supervised_fine_tuning":
+        elif config["dataset_args"].get("task") == "supervised_fine_tuning":
             for split, split_dataset in datasets.items():
                 current_dataset = ClinicalRecordsDataset(
                     tokenizer=tokenizer,
@@ -280,10 +282,10 @@ if __name__ == "__main__":
                     datasets[split].extend(current_dataset)
 
     # Extend datasets if set in config
-    if cfg.get("dataset_extensions") is not None:
+    if config.get("dataset_extensions") is not None:
         print("Extending datasets...")
-        for split in cfg["dataset_extensions"]:
-            for dataset_path in cfg["dataset_extensions"][split]:
+        for split in config["dataset_extensions"]:
+            for dataset_path in config["dataset_extensions"][split]:
                 dataset_args["dataset_path"] = dataset_path
                 current_dataset = ClinicalRecordsDataset(
                     tokenizer=tokenizer,
@@ -298,14 +300,20 @@ if __name__ == "__main__":
         datasets["test"],
     )
 
-    if cfg["dataset_args"].get("count_tokens"):
+    logger.info(f"Dataset args: {config['dataset_args']}")
+
+    if config["dataset_args"].get("count_tokens"):
         print(f"Total training tokens: {train_dataset.total_tokens}")
 
     # Load best params from hpsearch if available
-    if cfg.get("load_best_params_from_hpsearch", False):
+    if config.get("load_best_params_from_hpsearch", False):
         logger.info("Loading best params from hpsearch...")
-        for path in cfg["best_params_paths"].get("training_args", []):
+        for path in config["best_params_paths"].get("training_args", []):
             best_training_args_params_path = Path(path)
+            best_training_args_params_path = best_training_args_params_path.parent / (
+                best_training_args_params_path.stem
+                + f"_data_split_seed_{train_dataset.random_seed}.jsonl"
+            )
             if not best_training_args_params_path.exists():
                 logger.warning(
                     f"Best training args params path {best_training_args_params_path} does not exist. Skipping..."
@@ -314,17 +322,23 @@ if __name__ == "__main__":
             best_training_args_params = json.load(
                 open(best_training_args_params_path, "r")
             )
-            cfg["training_args"].update(best_training_args_params["best_trial_params"])
+            config["training_args"].update(
+                best_training_args_params["best_trial_params"]
+            )
             logger.info(
                 f"Training args: Loaded best params from {best_training_args_params_path}"
             )
             logger.info(
                 f"Best params: {best_training_args_params['best_trial_params']}"
             )
-            logger.info(f"Training args: {cfg['training_args']}")
+            logger.info(f"Training args: {config['training_args']}")
 
-        for path in cfg["best_params_paths"].get("trainer_args", []):
+        for path in config["best_params_paths"].get("trainer_args", []):
             best_trainer_args_params_path = Path(path)
+            best_trainer_args_params_path = best_trainer_args_params_path.parent / (
+                best_trainer_args_params_path.stem
+                + f"_data_split_seed_{train_dataset.random_seed}.jsonl"
+            )
             if not best_trainer_args_params_path.exists():
                 logger.warning(
                     f"Best trainer args params path {best_trainer_args_params_path} does not exist. Skipping..."
@@ -333,36 +347,36 @@ if __name__ == "__main__":
             best_trainer_args_params = json.load(
                 open(best_trainer_args_params_path, "r")
             )
-            cfg["trainer_args"].update(best_trainer_args_params["best_trial_params"])
+            config["trainer_args"].update(best_trainer_args_params["best_trial_params"])
             logger.info(
                 f"Trainer args: Loaded best params from {best_trainer_args_params_path}"
             )
             logger.info(f"Best params: {best_trainer_args_params['best_trial_params']}")
-            logger.info(f"Trainer args: {cfg['trainer_args']}")
+            logger.info(f"Trainer args: {config['trainer_args']}")
 
     # Load training arguments
-    if cfg["dataset_args"].get("task") == "supervised_fine_tuning":
+    if config["dataset_args"].get("task") == "supervised_fine_tuning":
         training_args = SFTConfig(
-            output_dir=cfg["results_path"] / "checkpoints",
-            max_length=cfg["dataset_args"]["max_length"],
+            output_dir=config["results_path"] / "checkpoints",
+            max_length=config["dataset_args"]["max_length"],
             completion_only_loss=True,
-            **cfg["training_args"],
+            **config["training_args"],
         )
 
     else:
         training_args = TrainingArguments(
-            output_dir=cfg["results_path"] / "checkpoints",
-            **cfg["training_args"],
+            output_dir=config["results_path"] / "checkpoints",
+            **config["training_args"],
         )
 
     # Prepare model, data collator and trainer
-    if cfg["dataset_args"].get("task") == "masked_language_modeling":
+    if config["dataset_args"].get("task") == "masked_language_modeling":
         # Load model
-        if cfg.get("use_bidirectional_llama"):
-            model = BidirectionalLlamaForCausalLM.from_pretrained(cfg["model_id"])
+        if config.get("use_bidirectional_llama"):
+            model = BidirectionalLlamaForCausalLM.from_pretrained(config["model_id"])
 
         else:
-            model = AutoModelForMaskedLM.from_pretrained(cfg["model_id"])
+            model = AutoModelForMaskedLM.from_pretrained(config["model_id"])
 
         # Check if tokenizer has a mask token
         if tokenizer.mask_token is None:
@@ -370,17 +384,17 @@ if __name__ == "__main__":
             model.resize_token_embeddings(len(tokenizer))
 
         # Resize model if tokenizer has been extended
-        if cfg.get("extend_tokenizer"):
+        if config.get("extend_tokenizer"):
             model.resize_token_embeddings(len(tokenizer))
 
         # Load lora if enabled
-        if cfg.get("use_lora"):
-            lora_config = LoraConfig(**cfg["lora_config"])
+        if config.get("use_lora"):
+            lora_config = LoraConfig(**config["lora_config"])
             model = get_peft_model(model, lora_config)
 
         data_collator = DataCollatorForLanguageModeling(
             tokenizer=tokenizer,
-            mlm_probability=cfg["data_collator_args"]["mlm_probability"],
+            mlm_probability=config["data_collator_args"]["mlm_probability"],
         )
 
         # Load trainer
@@ -390,29 +404,31 @@ if __name__ == "__main__":
             train_dataset=train_dataset,
             processing_class=tokenizer,
             data_collator=data_collator,
-            callbacks=[EarlyStoppingCallback(patience=cfg["early_stopping_patience"])],
-            **cfg.get("trainer_args", {}),
+            callbacks=[
+                EarlyStoppingCallback(patience=config["early_stopping_patience"])
+            ],
+            **config.get("trainer_args", {}),
         )
 
-    elif cfg["dataset_args"].get("task") == "token_classification":
-        if cfg.get("use_bidirectional_llama"):
+    elif config["dataset_args"].get("task") == "token_classification":
+        if config.get("use_bidirectional_llama"):
             model = BidirectionalLlamaForTokenClassification.from_pretrained(
-                cfg["model_id"], num_labels=train_dataset.num_labels
+                config["model_id"], num_labels=train_dataset.num_labels
             )
 
         else:
             model = AutoModelForTokenClassification.from_pretrained(
-                cfg["model_id"], num_labels=train_dataset.num_labels
+                config["model_id"], num_labels=train_dataset.num_labels
             )
 
         # Load lora if enabled
-        if cfg.get("use_lora"):
-            lora_config = LoraConfig(**cfg["lora_config"])
+        if config.get("use_lora"):
+            lora_config = LoraConfig(**config["lora_config"])
             model = get_peft_model(model, lora_config)
 
         data_collator = DataCollatorForMultiLabelTokenClassification(
             pad_token_id=tokenizer.pad_token_id,
-            max_length=cfg["dataset_args"]["max_length"],
+            max_length=config["dataset_args"]["max_length"],
             num_labels=train_dataset.num_labels,
         )
 
@@ -427,30 +443,32 @@ if __name__ == "__main__":
             processing_class=tokenizer,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(patience=cfg["early_stopping_patience"])],
+            callbacks=[
+                EarlyStoppingCallback(patience=config["early_stopping_patience"])
+            ],
             pos_weight=train_dataset.pos_weight,
-            **cfg.get("trainer_args", {}),
+            **config.get("trainer_args", {}),
         )
 
-    elif cfg["dataset_args"].get("task") == "sequence_classification":
-        if cfg.get("use_bidirectional_llama"):
+    elif config["dataset_args"].get("task") == "sequence_classification":
+        if config.get("use_bidirectional_llama"):
             raise ValueError(
                 "Bidirectional LLaMA not supported for sequence classification"
             )
 
         else:
             model = AutoModelForSequenceClassification.from_pretrained(
-                cfg["model_id"], num_labels=train_dataset.num_labels
+                config["model_id"], num_labels=train_dataset.num_labels
             )
 
         # Load lora if enabled
-        if cfg.get("use_lora"):
-            lora_config = LoraConfig(**cfg["lora_config"])
+        if config.get("use_lora"):
+            lora_config = LoraConfig(**config["lora_config"])
             model = get_peft_model(model, lora_config)
 
         data_collator = DataCollatorForMultiLabelTokenClassification(
             pad_token_id=tokenizer.pad_token_id,
-            max_length=cfg["dataset_args"]["max_length"],
+            max_length=config["dataset_args"]["max_length"],
             num_labels=train_dataset.num_labels,
         )
 
@@ -465,12 +483,14 @@ if __name__ == "__main__":
             processing_class=tokenizer,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(patience=cfg["early_stopping_patience"])],
+            callbacks=[
+                EarlyStoppingCallback(patience=config["early_stopping_patience"])
+            ],
             pos_weight=train_dataset.pos_weight,
-            **cfg.get("trainer_args", {}),
+            **config.get("trainer_args", {}),
         )
 
-    elif cfg["dataset_args"].get("task") == "supervised_fine_tuning":
+    elif config["dataset_args"].get("task") == "supervised_fine_tuning":
         # Convert datasets to huggingface datasets
         train_dataset = train_dataset.to_hf_dataset()
         val_dataset = val_dataset.to_hf_dataset()
@@ -478,12 +498,12 @@ if __name__ == "__main__":
         # test_dataset = test_dataset.to_hf_dataset()
 
         # Load model and tokenizer
-        model = AutoModelForCausalLM.from_pretrained(cfg["model_id"])
-        tokenizer = AutoTokenizer.from_pretrained(cfg["model_id"])
+        model = AutoModelForCausalLM.from_pretrained(config["model_id"])
+        tokenizer = AutoTokenizer.from_pretrained(config["model_id"])
 
         # Load lora if enabled
-        if cfg.get("use_lora"):
-            lora_config = LoraConfig(**cfg["lora_config"])
+        if config.get("use_lora"):
+            lora_config = LoraConfig(**config["lora_config"])
             model = get_peft_model(model, lora_config)
 
         # Load trainer
@@ -496,7 +516,7 @@ if __name__ == "__main__":
             eval_dataset=val_dataset,
             args=training_args,
             processing_class=tokenizer,
-            **cfg.get("trainer_args", {}),
+            **config.get("trainer_args", {}),
         )
 
     else:
@@ -504,35 +524,37 @@ if __name__ == "__main__":
 
     # Execute training
     ## Either resume or start new training loop
-    if cfg.get("resume_from_checkpoint") is not None:
-        resume_from_checkpoint = cfg["resume_from_checkpoint"]
+    if config.get("resume_from_checkpoint") is not None:
+        resume_from_checkpoint = config["resume_from_checkpoint"]
     else:
         resume_from_checkpoint = (
-            True if (is_not_empty(cfg["results_path"] / "checkpoints")) else False
+            True if (is_not_empty(config["results_path"] / "checkpoints")) else False
         )
 
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # Evaluate on test set if necessary
-    if cfg["dataset_args"].get("task") in [
+    if config["dataset_args"].get("task") in [
         "token_classification",
         "sequence_classification",
     ]:
         trainer.eval_dataset = test_dataset
         test_set_metrics = trainer.evaluate()
-        test_set_metrics["run_name"] = cfg["run_name"]
+        test_set_metrics["run_name"] = config["run_name"]
         test_set_metrics.update(
             {
-                "model_id": cfg["model_id"],
-                "batch_effective": cfg["training_args"]["per_device_train_batch_size"]
-                * cfg["training_args"]["gradient_accumulation_steps"],
-                "patience": cfg["early_stopping_patience"],
+                "model_id": config["model_id"],
+                "batch_effective": config["training_args"][
+                    "per_device_train_batch_size"
+                ]
+                * config["training_args"]["gradient_accumulation_steps"],
+                "patience": config["early_stopping_patience"],
                 "pos_weight": train_dataset.pos_weight.tolist(),
             }
         )
 
-        if cfg["dataset_args"].get("task") == "token_classification":
-            test_set_metrics["annotation_type"] = cfg["dataset_args"][
+        if config["dataset_args"].get("task") == "token_classification":
+            test_set_metrics["annotation_type"] = config["dataset_args"][
                 "annotation_scheme"
             ]
 
@@ -555,7 +577,7 @@ if __name__ == "__main__":
         for i in range(probs_flat.shape[-1] if probs_flat.ndim > 1 else 1):
             y_score = probs_flat[:, i] if probs_flat.ndim > 1 else probs_flat
             y_true = labels_flat[:, i] if probs_flat.ndim > 1 else labels_flat
-            label_type = cfg["dataset_args"].get("label_type", "tags")
+            label_type = config["dataset_args"].get("label_type", "tags")
             label_name = (
                 getattr(test_dataset, f"{label_type}_to_consider")[i]
                 if probs_flat.ndim > 1
@@ -579,12 +601,15 @@ if __name__ == "__main__":
 
         # Select best tresholds
         thresholds = get_best_threshold(
-            threshold_map, **cfg.get("threshold_selection", {})
+            threshold_map, **config.get("threshold_selection", {})
         )
         trainer.model.config.thresholds = thresholds.to_dict()
 
         # Save metrics
-        metrics_path = cfg["results_path"] / "metrics.jsonl"
+        metrics_path = (
+            config["results_path"]
+            / f"metrics_data_split_seed_{train_dataset.random_seed}.jsonl"
+        )
         write_mode = (
             "a" if metrics_path.is_file() and is_not_empty(metrics_path) else "w"
         )
@@ -600,11 +625,11 @@ if __name__ == "__main__":
                 for k, v in threshold_map.items()
             }
 
-            test_set_metrics["run_name"] = cfg["run_name"]
+            test_set_metrics["run_name"] = config["run_name"]
             test_set_metrics["threshold_map"] = threshold_map
             test_set_metrics["selected_thresholds"] = thresholds.to_dict()
             writer.write(test_set_metrics)
 
     # Save best model
-    trainer.save_model(cfg["results_path"] / "best_model")
+    trainer.save_model(config["results_path"] / "best_model")
     trainer.save_state()

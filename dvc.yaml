@@ -1,67 +1,69 @@
 vars:
-  - repetitions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  # List of random seeds for data split
+  - random_seed: [387, 3, 510, 892, 658, 284, 669, 295, 552, 561, 568, 703, 200, 201, 586, 460, 77, 462, 209, 855, 730, 475, 476, 740, 741, 105, 754, 891, 508, 126] 
   - global_options: ""
   - models:
       - mmbert
-      - biobertpt
-      - modernbert
 
 stages:
   baseline_hpsearch:
     matrix:
       experiment: ${models}
-    cmd: python hpsearch.py --config experiments/baseline_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python hpsearch.py --config experiments/baseline_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
     deps:
       - datasets/breast_cancer_dataset
       - hpsearch.py
     outs:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
 
   baseline:
     matrix:
       experiment: ${models}
-      repetitions: ${repetitions}
-    cmd: python train.py --config experiments/baseline_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/baseline_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
     deps:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
       - datasets/breast_cancer_dataset
 
   exp_1_mecla_hpsearch:
     matrix:
       experiment: ${models}
-    cmd: python hpsearch.py --config experiments/exp_1_mecla_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python hpsearch.py --config experiments/exp_1_mecla_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed}  ${global_options}
     deps:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
       - datasets/breast_cancer_dataset
     outs:
-      - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
+      - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc_data_split_seed_${item.random_seed}.jsonl
 
   exp_1_mecla:
     matrix:
       experiment: ${models}
-      repetitions: ${repetitions}
-    cmd: python train.py --config experiments/exp_1_mecla_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/exp_1_mecla_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
     deps:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
-      - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
+      - experiments/exp_1_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc_data_split_seed_${item.random_seed}.jsonl
       - datasets/breast_cancer_dataset
 
   exp_2_mecla_hpsearch:
     matrix:
       experiment: ${models}
-    cmd: python hpsearch.py --config experiments/exp_2_mecla_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python hpsearch.py --config experiments/exp_2_mecla_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
     deps:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
       - datasets/breast_cancer_dataset
     outs:
-      - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
+      - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc_data_split_seed_${item.random_seed}.jsonl
 
   exp_2_mecla:
     matrix:
       experiment: ${models}
-      repetitions: ${repetitions}
-    cmd: python train.py --config experiments/exp_2_mecla_${item.experiment}.yaml ${global_options}
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/exp_2_mecla_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
     deps:
-      - experiments/baseline_${item.experiment}/hpsearch_eval_loss.jsonl
-      - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc.jsonl
+      - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_${item.random_seed}.jsonl
+      - experiments/exp_2_mecla_${item.experiment}/hpsearch_eval_macro_pr_auc_data_split_seed_${item.random_seed}.jsonl
       - datasets/breast_cancer_dataset
