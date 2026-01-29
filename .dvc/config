@@ -1,4 +1,5 @@
 [core]
     remote = gcp
+    autostage = true
 ['remote "gcp"']
     url = gs://spesia-research/research_mecla_objective_paper

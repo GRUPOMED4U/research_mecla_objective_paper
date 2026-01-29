@@ -41,6 +41,7 @@ dependencies = [
     "mkdocs-material>=9.7.1",
     "mkdocstrings[python]>=1.0.0",
     "mkdocstrings-python>=2.0.1",
+    "cliffs-delta>=1.0.0",
 ]
 
 [tool.uv]

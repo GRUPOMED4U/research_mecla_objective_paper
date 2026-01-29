@@ -7,7 +7,7 @@ best_params_paths:
   training_args:
     - experiments/baseline_mmbert/hpsearch_eval_loss.jsonl
   trainer_args:
-    - experiments/exp_1_mecla_mmbert/hpsearch_eval_macro_pr_auc.jsonl
+    - experiments/exp_1_mecla_mmbert/hpsearch_eval_loss.jsonl
 
 early_stopping_patience: 3
 

@@ -3,6 +3,7 @@ This script is for hyperparameter search with optuna for an experiment defined a
 """
 
 import argparse
+import json
 from pathlib import Path
 import shutil
 from typing import Dict
@@ -93,6 +94,55 @@ if __name__ == "__main__":
     )
 
     logger.info(f"Dataset args: {config['dataset_args']}")
+
+    # Load best params from hpsearch if available
+    if config.get("load_best_params_from_hpsearch", False):
+        logger.info("Loading best params from hpsearch...")
+        for path in config["best_params_paths"].get("training_args", []):
+            best_training_args_params_path = Path(path)
+            best_training_args_params_path = best_training_args_params_path.parent / (
+                best_training_args_params_path.stem
+                + f"_data_split_seed_{train_dataset.random_seed}.jsonl"
+            )
+            if not best_training_args_params_path.exists():
+                logger.warning(
+                    f"Best training args params path {best_training_args_params_path} does not exist. Skipping..."
+                )
+                continue
+            best_training_args_params = json.load(
+                open(best_training_args_params_path, "r")
+            )
+            config["training_args"].update(
+                best_training_args_params["best_trial_params"]
+            )
+            logger.info(
+                f"Training args: Loaded best params from {best_training_args_params_path}"
+            )
+            logger.info(
+                f"Best params: {best_training_args_params['best_trial_params']}"
+            )
+            logger.info(f"Training args: {config['training_args']}")
+
+        for path in config["best_params_paths"].get("trainer_args", []):
+            best_trainer_args_params_path = Path(path)
+            best_trainer_args_params_path = best_trainer_args_params_path.parent / (
+                best_trainer_args_params_path.stem
+                + f"_data_split_seed_{train_dataset.random_seed}.jsonl"
+            )
+            if not best_trainer_args_params_path.exists():
+                logger.warning(
+                    f"Best trainer args params path {best_trainer_args_params_path} does not exist. Skipping..."
+                )
+                continue
+            best_trainer_args_params = json.load(
+                open(best_trainer_args_params_path, "r")
+            )
+            config["trainer_args"].update(best_trainer_args_params["best_trial_params"])
+            logger.info(
+                f"Trainer args: Loaded best params from {best_trainer_args_params_path}"
+            )
+            logger.info(f"Best params: {best_trainer_args_params['best_trial_params']}")
+            logger.info(f"Trainer args: {config['trainer_args']}")
 
     # Define optuna study
     for hpsearch_config in config.get("hyperparameter_search", {}).values():
