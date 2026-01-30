@@ -233,6 +233,9 @@ class MultiLabelTokenTrainer(Trainer):
                 reduction="none", pos_weight=self.pos_weight
             )
             loss = loss_fct(logits, labels.float())  # [B, L, C]
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         elif self.loss_type == "bce_with_mecla":
             mutually_exclusive_classes_indices = [
@@ -252,6 +255,9 @@ class MultiLabelTokenTrainer(Trainer):
                 apply_to_mids=self.mecla_apply_to_mids,
                 token_dim=self.mecla_token_dim,
             )
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         elif self.loss_type == "bce_with_pairwise_mecla":
             mutually_exclusive_classes_indices = [
@@ -272,6 +278,9 @@ class MultiLabelTokenTrainer(Trainer):
                 apply_to_mids=self.mecla_apply_to_mids,
                 token_dim=self.mecla_token_dim,
             )
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         elif self.loss_type == "focal_loss":
             loss = sigmoid_focal_loss(
@@ -281,6 +290,9 @@ class MultiLabelTokenTrainer(Trainer):
                 gamma=self.focal_loss_gamma,
                 reduction="none",
             )
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         # added: grouped softmax
         elif self.loss_type == "bce_with_grouped_softmax":
@@ -290,7 +302,9 @@ class MultiLabelTokenTrainer(Trainer):
             ]
 
             exclusive_idx = sorted({i for g in exclusive_groups for i in g})
-            exclusive_mask = torch.zeros(logits.size(-1), dtype=torch.bool, device=logits.device)
+            exclusive_mask = torch.zeros(
+                logits.size(-1), dtype=torch.bool, device=logits.device
+            )
             exclusive_mask[exclusive_idx] = True
 
             # usual BCE on non-exclusive groups
@@ -299,7 +313,7 @@ class MultiLabelTokenTrainer(Trainer):
                 loss_fct = torch.nn.BCEWithLogitsLoss(
                     reduction="none", pos_weight=self.pos_weight
                 )
-                bce_full = loss_fct(logits, labels.float())    # [B,L,C]
+                bce_full = loss_fct(logits, labels.float())  # [B,L,C]
                 bce_non_excl = bce_full[..., ~exclusive_mask]  # [B,L,C_non_excl]
                 loss_bce = (bce_non_excl * attn).sum() / attn.sum().clamp(min=1)
 
@@ -315,13 +329,13 @@ class MultiLabelTokenTrainer(Trainer):
                     [logits.new_zeros((B, L, 1)), logits[..., g]], dim=-1
                 )  # [B,L,1+|g|]: NONE=0
 
-                y = labels[..., g].float()     # [B,L,|g|]
-                active = (y > 0.5)
+                y = labels[..., g].float()  # [B,L,|g|]
+                active = y > 0.5
                 n_active = active.sum(dim=-1)  # [B,L]
 
                 target = torch.zeros((B, L), dtype=torch.long, device=device)  # NONE=0
                 # If exactly one active, set target to its 1-based index
-                one_active = (n_active == 1)
+                one_active = n_active == 1
                 if one_active.any():
                     idx = active[one_active].long().argmax(dim=-1)  # [N]
                     target[one_active] = idx + 1
@@ -341,13 +355,9 @@ class MultiLabelTokenTrainer(Trainer):
             # loss = non-exclusive BCE + MECLA-amplified CE on grouped softmax
             loss = loss_bce + (self.mecla_amplification_factor * loss_ce_sum)
 
-
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")
 
-        # mask by attention
-        attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
-        loss = (loss * attn).sum() / attn.sum().clamp(min=1)
         return (loss, outputs) if return_outputs else loss
 
 
@@ -391,7 +401,6 @@ class MultilabelSequenceClassificationTrainer(Trainer):
                 gamma=self.focal_loss_gamma,
                 reduction="mean",
             )  # [B, 1]
-
 
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")
