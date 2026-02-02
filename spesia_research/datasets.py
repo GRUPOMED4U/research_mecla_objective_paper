@@ -1278,7 +1278,6 @@ class ClinicalRecordsDataset(Dataset):
         Returns:
             ClinicalRecordsDataset: A new ClinicalRecordsDataset object instantiated from the Hugging Face dataset with the specified ID.
         """
-        print(HF_TO_CLINICAL_RECORDS_DATASET_MAPPING)
         if dataset_id not in HF_TO_CLINICAL_RECORDS_DATASET_MAPPING:
             raise ValueError(f"Dataset {dataset_id} not supported yet.")
 
