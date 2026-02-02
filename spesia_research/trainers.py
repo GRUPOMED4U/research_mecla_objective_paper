@@ -353,7 +353,7 @@ class MultiLabelTokenTrainer(Trainer):
                 loss_ce_sum = loss_ce_sum + (ce * attn2).sum() / denom
 
             # loss = non-exclusive BCE + MECLA-amplified CE on grouped softmax
-            loss = loss_bce + (self.mecla_amplification_factor * loss_ce_sum)
+            loss = loss_bce + loss_ce_sum
 
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")

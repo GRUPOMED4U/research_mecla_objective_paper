@@ -10,6 +10,7 @@ Classes:
 """
 
 # Standard libraries
+import functools
 from pathlib import Path
 from typing import Dict, List, Literal, Set, Tuple
 import random
@@ -28,10 +29,11 @@ import numpy as np
 from skmultilearn.model_selection import iterative_train_test_split
 from pydantic import BaseModel
 import datasets
+from datasets import load_dataset
 
 # Custom libraries
 from .config import load_exp_config
-from .data_models import Record
+from .data_models import Annotation, Record
 
 
 # ==============================================================
@@ -42,6 +44,39 @@ from .data_models import Record
 def overlaps(a_start, a_end, b_start, b_end) -> bool:
     """Check strict overlap of half-open intervals [start, end)."""
     return (a_start < b_end) and (b_start < a_end)
+
+
+def reconstruct_text_from_tokens(tokens: List[str]) -> str:
+    no_space_before = {".", ",", ";", ":", "!", "?", ")", "]", "}"}
+    no_space_after = {"(", "[", "{"}
+
+    text = ""
+    for tok in tokens:
+        if not text:
+            text = tok
+        elif tok in no_space_before:
+            text += tok
+        elif text[-1] in no_space_after:
+            text += tok
+        else:
+            text += " " + tok
+
+    return text
+
+
+# ==============================================================
+# Registry of funcions that map HF datasets to ClinicalRecordsDataset objects
+# ==============================================================
+HF_TO_CLINICAL_RECORDS_DATASET_MAPPING = {}
+
+
+def hf_dataset_registry(hf_dataset_id: str):
+    def decorator(func):
+        # Register the callable at import time
+        HF_TO_CLINICAL_RECORDS_DATASET_MAPPING[hf_dataset_id] = func
+        return func
+
+    return decorator
 
 
 # ==============================================================
@@ -58,6 +93,7 @@ class ClinicalRecordsDataset(Dataset):
     def __init__(
         self,
         dataset_path: str | Path | None = None,
+        file_format: Literal["semclinbr", "argilla", "docanno", "conll"] = None,
         text_column: str = None,
         label_column: str = None,
         records: list[Record] | None = None,
@@ -120,6 +156,7 @@ class ClinicalRecordsDataset(Dataset):
         # Main attributes
         # --------------------------
         self.label_type = label_type
+        self.file_format = file_format
         self.records: list[Record] = []
         self.all_records: list[Record] = []
         self.split = split
@@ -262,6 +299,9 @@ class ClinicalRecordsDataset(Dataset):
         """
         Load all records from different sources. Handles different file formats. Raises error file format is not supported.
         """
+        if self.file_format == "conll":
+            self.all_records = Record.from_conll(self.path)
+
         file_paths = list(self.path.glob("*"))
         if not file_paths:
             raise FileNotFoundError(f"No files found in {self.path}")
@@ -360,7 +400,6 @@ class ClinicalRecordsDataset(Dataset):
         labels_to_ignore = counts[counts < self.min_samples_per_label].index.tolist()
         labels_to_keep = counts[counts >= self.min_samples_per_label].index.tolist()
         self.labels_to_ignore = labels_to_ignore
-
         if len(labels_to_ignore) > 0:
             print(
                 "Ignored labels during data split due to low sample count:",
@@ -1195,6 +1234,56 @@ class ClinicalRecordsDataset(Dataset):
     def get_text_index(self, text: str) -> int:
         return list(self.get_texts()).index(text)
 
+    def get_overlapping_tags(self) -> set[set[str]]:
+        """Returns a dictionary where keys are tuples of overlapping tags and values are lists of record indices that contain the overlapping tags.
+
+        The dictionary is constructed by iterating over the records and their annotations, and checking for overlaps between adjacent annotations. If an overlap is found, the tags of the overlapping annotations are added to the dictionary as a tuple key, and the record index is added to the list of values for that key.
+
+        The purpose of this function is to provide a way to identify records that contain overlapping annotations, which can be useful for tasks such as annotation deduplication or identifying mutually exclusive labels.
+
+        Returns:
+            A dictionary where keys are tuples of overlapping tags and values are lists of record indices that contain the overlapping tags.
+        """
+        overlapping_registry = {}
+        for record_idx, record in enumerate(self.records):
+            for i, annotation in enumerate(record.annotations):
+                for j, other_annotation in enumerate(record.annotations[i + 1 :]):
+                    if overlaps(
+                        annotation.start,
+                        annotation.end,
+                        other_annotation.start,
+                        other_annotation.end,
+                    ):
+                        overlap_key = set([*annotation.tags, *other_annotation.tags])
+                        overlap_key = tuple(list(sorted(overlap_key)))
+                        if overlap_key not in overlapping_registry:
+                            overlapping_registry[overlap_key] = []
+                            overlapping_registry[overlap_key].append(record_idx)
+
+                        else:
+                            if record not in overlapping_registry[overlap_key]:
+                                overlapping_registry[overlap_key].append(record_idx)
+
+        return overlapping_registry
+
+    @classmethod
+    def from_hf_dataset(cls, dataset_id: str, **kwargs) -> "ClinicalRecordsDataset":
+        """
+        Instantiates a ClinicalRecordsDataset object from a Hugging Face dataset ID.
+
+        Args:
+            dataset_id (str): The ID of the Hugging Face dataset to instantiate.
+            **kwargs: Additional keyword arguments to pass to the ClinicalRecordsDataset constructor.
+
+        Returns:
+            ClinicalRecordsDataset: A new ClinicalRecordsDataset object instantiated from the Hugging Face dataset with the specified ID.
+        """
+        print(HF_TO_CLINICAL_RECORDS_DATASET_MAPPING)
+        if dataset_id not in HF_TO_CLINICAL_RECORDS_DATASET_MAPPING:
+            raise ValueError(f"Dataset {dataset_id} not supported yet.")
+
+        return HF_TO_CLINICAL_RECORDS_DATASET_MAPPING[dataset_id](**kwargs)
+
 
 # ==============================================================
 # Data Collator
@@ -1255,3 +1344,51 @@ class DataCollatorForMultiLabelTokenClassification:
             "input_ids": torch.stack(batch_input_ids).to(self.device),
             "attention_mask": torch.stack(batch_attention_mask).to(self.device),
         }
+
+
+# ==============================================================
+# HF datasets registry
+# ==============================================================
+
+
+@hf_dataset_registry("Aunderline/genia")
+def load_aunderline_genia(split: str = None, **kwargs) -> "ClinicalRecordsDataset":
+    if split == "val":
+        split = "validation"
+    dataset_id = "Aunderline/genia"
+    datasets = load_dataset(dataset_id)
+    converted_datasets = []
+    splits_of_interest = datasets.keys() if split is None else [split]
+    for split in splits_of_interest:
+        dataset = datasets[split]
+        records = []
+        for record in dataset:
+            text = reconstruct_text_from_tokens(record["tokens"])
+            annotations = []
+            for entity in sorted(record["entities"], key=lambda x: x["start"]):
+                entity_text = reconstruct_text_from_tokens(
+                    record["tokens"][entity["start"] : entity["end"]]
+                )
+                start = text.find(entity_text)
+                end = start + len(entity_text)
+                annotations.append(
+                    Annotation(
+                        id="",
+                        tags=[entity["type"]],
+                        start=start,
+                        end=end,
+                        text=entity_text,
+                    )
+                )
+
+            records.append(Record(text=text, annotations=annotations))
+
+        dataset = ClinicalRecordsDataset.from_list_of_records(records, **kwargs)
+        converted_datasets.append(dataset)
+
+    if len(converted_datasets) == 1:
+        return converted_datasets[0]
+    else:
+        for ds in converted_datasets[1:]:
+            converted_datasets[0].extend(ds)
+        return converted_datasets[0]
