@@ -531,6 +531,8 @@ if __name__ == "__main__":
             True if (is_not_empty(config["results_path"] / "checkpoints")) else False
         )
 
+    logger.info(f"Trainer args: {config.get('trainer_args')}")
+
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # Evaluate on test set if necessary
