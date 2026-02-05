@@ -91,8 +91,6 @@ stages:
     deps:
       - experiments/baseline_${item.experiment}/hpsearch_eval_loss_data_split_seed_3.jsonl
       - datasets/breast_cancer_dataset
-    outs:
-      - experiments/exp_4_mecla_${item.experiment}/metrics_data_split_seed_42.jsonl
 
   exp_5_mecla:
     matrix:
