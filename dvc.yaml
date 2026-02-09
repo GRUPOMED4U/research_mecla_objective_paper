@@ -102,3 +102,17 @@ stages:
       - datasets/breast_cancer_dataset
     outs:
       - experiments/exp_5_mecla_${item.experiment}/metrics_data_split_seed_${item.random_seed}.jsonl
+
+  nestedclinbr_mmbert_baseline:
+    matrix:
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/nestedclinbr_mmbert_baseline.yaml ${global_options}
+    deps:
+      - datasets/nested_clin_dataset
+
+  nestedclinbr_mmbert_mecla:
+    matrix:
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/nestedclinbr_mmbert_mecla.yaml ${global_options}
+    deps:
+      - datasets/nested_clin_dataset

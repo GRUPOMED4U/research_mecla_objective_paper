@@ -1,9 +1,38 @@
 from pathlib import Path
 from pydantic import BaseModel
-from typing import List, Literal, Set
+from typing import List, Literal
 import xml.etree.ElementTree as ET
 import json
 import pandas as pd
+from tqdm import tqdm
+from conllu import parse
+
+
+# brat files helper function
+def load_ann_as_rows(ann_path: Path) -> pd.DataFrame:
+    df = pd.read_csv(ann_path, sep="\t", header=None, dtype=str, keep_default_na=False)
+    df.columns = ["id", "span", "ann_text"]
+
+    # span examples:
+    # "Tratamento 43 57"
+    # "Problema 244 252;283 306"
+    m = df["span"].str.extract(r"^(?P<entity>\S+)\s+(?P<rest>.+)$")
+    df["entity"] = m["entity"]
+    df["rest"] = m["rest"]
+
+    # get all (start,end) pairs, including those after ';'
+    pairs = df["rest"].str.findall(r"(\d+)\s+(\d+)")
+    df = df.assign(pairs=pairs).explode("pairs")
+
+    # split tuple into start/end
+    df[["start", "end"]] = pd.DataFrame(df["pairs"].tolist(), index=df.index)
+    df["start"] = df["start"].astype(int)
+    df["end"] = df["end"].astype(int)
+
+    # keep original annotated string from column 2 if you want it
+    df["text_from_file"] = df["ann_text"]
+
+    return df[["id", "entity", "start", "end", "text_from_file"]].reset_index(drop=True)
 
 
 class Threshold(BaseModel):
@@ -185,12 +214,104 @@ class Annotation(BaseModel):
     end: int
     text: str
 
+    def to_gradio(
+        self,
+        label_type: Literal["tags", "semantic_groups"] = "tags",
+        output_format: Literal["dict", "tuple"] = "dict",
+    ) -> dict | tuple:
+        if output_format == "dict":
+            annotations = []
+            for label in getattr(self, label_type):
+                annotations.append(
+                    {
+                        "entity": label,
+                        "score": 0.0,
+                        "index": 0,
+                        "word": self.text,
+                        "start": self.start,
+                        "end": self.end,
+                    }
+                )
+            return annotations
+        elif output_format == "tuple":
+            raise NotImplementedError
+
 
 class Record(BaseModel):
     text: str
     annotations: List[Annotation]
     prompt: List[dict[str, str]] = None
     completion: List[dict[str, str]] = None
+
+    @classmethod
+    def from_conll(cls, dataset_path: Path) -> list["Record"]:
+        with dataset_path.open("r", encoding="utf-8") as f:
+            conll_dataset = parse(f.read())
+
+        records = []
+        for sentence in tqdm(conll_dataset):
+            curr_position = 0
+            text = sentence.metadata["text"]
+            annotations = []
+            for token in sentence:
+                start = text[curr_position:].find(token["form"]) + curr_position
+                curr_position += len(token["form"])
+                if token["lemma"] != "O":
+                    annotations.append(
+                        Annotation(
+                            id=str(token["id"]),
+                            tags=[token["lemma"].split("-")[-1]]
+                            if "-" in token["lemma"]
+                            else [token["lemma"]],
+                            start=start,
+                            end=start + len(token["form"]),
+                            text=token["form"],
+                        )
+                    )
+
+            record = cls(text=text, annotations=annotations)
+            records.append(record)
+        return records
+
+    @classmethod
+    def from_brat(cls, dataset_path: Path) -> list["Record"]:
+        """
+        Load records from a brat annotated dataset.
+
+        Args:
+            dataset_path (Path): Path to the directory containing the brat annotated dataset.
+
+        Returns:
+            list[Record]: A list of Record objects containing the text and annotations from the brat annotated dataset.
+
+        Notes:
+            - The function assumes that the dataset is in the same format as the one exported by the brat annotation tool.
+            - The function processes each block of annotations by one user as a separate record.
+        """
+        records = []
+        for file_path in Path(dataset_path).glob("*.txt"):
+            text = file_path.read_text(encoding="utf-8")
+
+            ann_path = file_path.with_suffix(".ann")
+            annotations_df = load_ann_as_rows(ann_path)
+
+            records.append(
+                Record(
+                    text=text,
+                    annotations=[
+                        Annotation(
+                            id=f"{row['id']}_{i}",  # keep uniqueness when an id splits into multiple spans
+                            start=int(row["start"]),
+                            end=int(row["end"]),
+                            text=text[int(row["start"]) : int(row["end"])],
+                            tags=[row["entity"]],
+                        )
+                        for i, row in enumerate(annotations_df.to_dict("records"))
+                    ],
+                )
+            )
+
+        return records
 
     @classmethod
     def from_csv(

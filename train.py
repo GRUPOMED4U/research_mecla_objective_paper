@@ -244,42 +244,52 @@ if __name__ == "__main__":
 
     logger.info(f"Dataset args: {dataset_args}")
 
-    for dataset_path in paths:
-        dataset_args["dataset_path"] = dataset_path
-        if config["dataset_args"].get("task") == "masked_language_modeling":
-            current_train_dataset = ClinicalRecordsDataset(
-                tokenizer=tokenizer, **dataset_args
+    if isinstance(paths, list) and isinstance(paths[0], str):
+        for dataset_path in paths:
+            dataset_args["dataset_path"] = dataset_path
+            if config["dataset_args"].get("task") == "masked_language_modeling":
+                current_train_dataset = ClinicalRecordsDataset(
+                    tokenizer=tokenizer, **dataset_args
+                )
+
+                if datasets["train"] is None:
+                    datasets["train"] = current_train_dataset
+                else:
+                    datasets["train"].extend(current_train_dataset)
+
+            elif config["dataset_args"].get("task") == "supervised_fine_tuning":
+                for split, split_dataset in datasets.items():
+                    current_dataset = ClinicalRecordsDataset(
+                        tokenizer=tokenizer,
+                        split=split,
+                        structured_output_model=AgentAnnotationsList,
+                        **dataset_args,
+                    )
+
+                    if split_dataset is None:
+                        datasets[split] = current_dataset
+                    else:
+                        datasets[split].extend(current_dataset)
+
+            else:
+                for split, split_dataset in datasets.items():
+                    current_dataset = ClinicalRecordsDataset(
+                        tokenizer=tokenizer, split=split, **dataset_args
+                    )
+
+                    if split_dataset is None:
+                        datasets[split] = current_dataset
+                    else:
+                        datasets[split].extend(current_dataset)
+
+    if isinstance(paths, dict) and set(["train", "test"]).issubset(set(paths.keys())):
+        for split, dataset_path in paths.items():
+            dataset_args["dataset_path"] = dataset_path
+            current_dataset = ClinicalRecordsDataset(
+                tokenizer=tokenizer, split=None, **dataset_args
             )
 
-            if datasets["train"] is None:
-                datasets["train"] = current_train_dataset
-            else:
-                datasets["train"].extend(current_train_dataset)
-
-        elif config["dataset_args"].get("task") == "supervised_fine_tuning":
-            for split, split_dataset in datasets.items():
-                current_dataset = ClinicalRecordsDataset(
-                    tokenizer=tokenizer,
-                    split=split,
-                    structured_output_model=AgentAnnotationsList,
-                    **dataset_args,
-                )
-
-                if split_dataset is None:
-                    datasets[split] = current_dataset
-                else:
-                    datasets[split].extend(current_dataset)
-
-        else:
-            for split, split_dataset in datasets.items():
-                current_dataset = ClinicalRecordsDataset(
-                    tokenizer=tokenizer, split=split, **dataset_args
-                )
-
-                if split_dataset is None:
-                    datasets[split] = current_dataset
-                else:
-                    datasets[split].extend(current_dataset)
+            datasets[split] = current_dataset
 
     # Extend datasets if set in config
     if config.get("dataset_extensions") is not None:
@@ -438,7 +448,9 @@ if __name__ == "__main__":
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=(
-                val_dataset if val_dataset.split_ratio["val"] > 0 else test_dataset
+                val_dataset
+                if val_dataset is not None and val_dataset.split_ratio["val"] > 0
+                else test_dataset
             ),
             processing_class=tokenizer,
             data_collator=data_collator,

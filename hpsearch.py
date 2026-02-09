@@ -3,6 +3,7 @@ This script is for hyperparameter search with optuna for an experiment defined a
 """
 
 import argparse
+import copy
 import json
 from pathlib import Path
 import shutil
@@ -18,6 +19,7 @@ import jsonlines
 
 # Custom modules
 from spesia_research.config import load_exp_config
+from spesia_research.data_models import AgentAnnotationsList
 from spesia_research.datasets import (
     ClinicalRecordsDataset,
     DataCollatorForMultiLabelTokenClassification,
@@ -69,6 +71,8 @@ if __name__ == "__main__":
     logger.debug(config)
 
     # Load datasets
+    paths = config["dataset_args"]["dataset_path"]
+    dataset_args = copy.deepcopy(config["dataset_args"])
     tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
     if tokenizer.pad_token is None:
         logger.info("Setting pad_token to eos_token")
@@ -80,12 +84,52 @@ if __name__ == "__main__":
         "val": None,
         "test": None,
     }
-    for split in datasets.keys():
-        datasets[split] = ClinicalRecordsDataset.from_exp_config(
-            config=config,
-            split=split,
-            tokenizer=tokenizer,
-        )
+    if isinstance(paths, list) and isinstance(paths[0], str):
+        for dataset_path in paths:
+            dataset_args["dataset_path"] = dataset_path
+            if config["dataset_args"].get("task") == "masked_language_modeling":
+                current_train_dataset = ClinicalRecordsDataset(
+                    tokenizer=tokenizer, **dataset_args
+                )
+
+                if datasets["train"] is None:
+                    datasets["train"] = current_train_dataset
+                else:
+                    datasets["train"].extend(current_train_dataset)
+
+            elif config["dataset_args"].get("task") == "supervised_fine_tuning":
+                for split, split_dataset in datasets.items():
+                    current_dataset = ClinicalRecordsDataset(
+                        tokenizer=tokenizer,
+                        split=split,
+                        structured_output_model=AgentAnnotationsList,
+                        **dataset_args,
+                    )
+
+                    if split_dataset is None:
+                        datasets[split] = current_dataset
+                    else:
+                        datasets[split].extend(current_dataset)
+
+            else:
+                for split, split_dataset in datasets.items():
+                    current_dataset = ClinicalRecordsDataset(
+                        tokenizer=tokenizer, split=split, **dataset_args
+                    )
+
+                    if split_dataset is None:
+                        datasets[split] = current_dataset
+                    else:
+                        datasets[split].extend(current_dataset)
+
+    if isinstance(paths, dict) and set(["train", "test"]).issubset(set(paths.keys())):
+        for split, dataset_path in paths.items():
+            dataset_args["dataset_path"] = dataset_path
+            current_dataset = ClinicalRecordsDataset(
+                tokenizer=tokenizer, split=None, **dataset_args
+            )
+
+            datasets[split] = current_dataset
 
     train_dataset, val_dataset, test_dataset = (
         datasets["train"],
@@ -226,7 +270,7 @@ if __name__ == "__main__":
                 model=model,
                 args=training_args,
                 train_dataset=train_dataset,
-                eval_dataset=val_dataset,
+                eval_dataset=val_dataset if val_dataset else test_dataset,
                 processing_class=tokenizer,
                 data_collator=data_collator,
                 compute_metrics=compute_metrics,

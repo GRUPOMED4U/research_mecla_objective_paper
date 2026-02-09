@@ -11,6 +11,7 @@ Classes:
 
 # Standard libraries
 import functools
+import itertools
 from pathlib import Path
 from typing import Dict, List, Literal, Set, Tuple
 import random
@@ -93,7 +94,7 @@ class ClinicalRecordsDataset(Dataset):
     def __init__(
         self,
         dataset_path: str | Path | None = None,
-        file_format: Literal["semclinbr", "argilla", "docanno", "conll"] = None,
+        file_format: Literal["semclinbr", "argilla", "docanno", "conll", "brat"] = None,
         text_column: str = None,
         label_column: str = None,
         records: list[Record] | None = None,
@@ -301,6 +302,11 @@ class ClinicalRecordsDataset(Dataset):
         """
         if self.file_format == "conll":
             self.all_records = Record.from_conll(self.path)
+            return
+
+        elif self.file_format == "brat":
+            self.all_records = Record.from_brat(self.path)
+            return
 
         file_paths = list(self.path.glob("*"))
         if not file_paths:
@@ -1234,7 +1240,7 @@ class ClinicalRecordsDataset(Dataset):
     def get_text_index(self, text: str) -> int:
         return list(self.get_texts()).index(text)
 
-    def get_overlapping_tags(self) -> set[set[str]]:
+    def get_overlapping_tags(self) -> Dict[Tuple[str, ...], List[int]]:
         """Returns a dictionary where keys are tuples of overlapping tags and values are lists of record indices that contain the overlapping tags.
 
         The dictionary is constructed by iterating over the records and their annotations, and checking for overlaps between adjacent annotations. If an overlap is found, the tags of the overlapping annotations are added to the dictionary as a tuple key, and the record index is added to the list of values for that key.
@@ -1265,6 +1271,14 @@ class ClinicalRecordsDataset(Dataset):
                                 overlapping_registry[overlap_key].append(record_idx)
 
         return overlapping_registry
+
+    def get_mutually_exclusive_tags(self) -> List[Tuple[str, ...]]:
+        overlapping_registry = self.get_overlapping_tags()
+        label_pairs = list(itertools.combinations(self.tags, 2))
+        mutually_exclusive_tags = [
+            pair for pair in label_pairs if pair not in overlapping_registry
+        ]
+        return mutually_exclusive_tags
 
     @classmethod
     def from_hf_dataset(cls, dataset_id: str, **kwargs) -> "ClinicalRecordsDataset":
