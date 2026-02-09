@@ -1,5 +1,5 @@
 outs:
-- md5: e7249ce68da25f35fdaa180749b2b995
-  size: 860160
+- md5: 0df2b2cb5268ad7f353b807f2fef1247
+  size: 876544
   hash: md5
   path: optuna.db
