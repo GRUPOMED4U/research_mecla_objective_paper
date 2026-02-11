@@ -6659,3 +6659,101 @@ stages:
       hash: md5
       md5: 6166c911d0d349a45a320432193b0c5a
       size: 201008775
+  exp_7_mecla@mmbert-200:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=200 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_200.jsonl
+      hash: md5
+      md5: 93cdc6b5cd189119749279fbb67da2c5
+      size: 195698010
+  exp_7_mecla@mmbert-740:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=740 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_740.jsonl
+      hash: md5
+      md5: 5bddc17f3008133c857029a376130e9b
+      size: 201563135
+  exp_7_mecla@mmbert-284:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=284 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_284.jsonl
+      hash: md5
+      md5: 46575f7c1531e3665bdebb742f786427
+      size: 190801790
+  exp_7_mecla@mmbert-892:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=892 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_892.jsonl
+      hash: md5
+      md5: 8968c48585056aeb4376bc7d17ce9a2f
+      size: 198740723
+  exp_7_mecla@mmbert-77:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=77 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_77.jsonl
+      hash: md5
+      md5: d216c1d9398d0e57040137743a54a657
+      size: 197615603
+  exp_7_mecla@mmbert-754:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=754 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_754.jsonl
+      hash: md5
+      md5: 0641fea752090ee56482f7f0c3f37400
+      size: 197488747
+  exp_7_mecla@mmbert-730:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=730 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_730.jsonl
+      hash: md5
+      md5: bf2f610407be38134666c49debc89bfd
+      size: 192244070
+  exp_7_mecla@mmbert-703:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=703 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_703.jsonl
+      hash: md5
+      md5: 7be5756242d16d5ae969208cb420078b
+      size: 194248272
+  exp_7_mecla@mmbert-552:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=552 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_552.jsonl
+      hash: md5
+      md5: 56b2cac19fe0d5cb8b7e631f81284dd0
+      size: 193845814
+  exp_7_mecla@mmbert-209:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=209 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_209.jsonl
+      hash: md5
+      md5: e52fda48a9bcde5dcf97536891d7b117
+      size: 193422117
+  exp_7_mecla@mmbert-201:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=201 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_201.jsonl
+      hash: md5
+      md5: 617112fc18cd83f4f9e3221f433ed856
+      size: 202842349
+  exp_7_mecla@mmbert-387:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=387 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_387.jsonl
+      hash: md5
+      md5: 9a4fcf25dfda6e0113c671d00267bacd
+      size: 199864008
+  exp_7_mecla@mmbert-475:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=475 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_475.jsonl
+      hash: md5
+      md5: a683ad554333f9b09b04e9ff9db29449
+      size: 186161116
+  exp_7_mecla@mmbert-568:
+    cmd: 'python train.py --config experiments/exp_7_mecla_mmbert.yaml --set dataset_args.random_seed=568 '
+    outs:
+    - path: experiments/exp_7_mecla_mmbert/metrics_data_split_seed_568.jsonl
+      hash: md5
+      md5: 09db2bdd7250341ddc1ec77f77e559c5
+      size: 195983925
