@@ -2,6 +2,7 @@ from typing import Literal
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.metrics import average_precision_score
 import numpy as np
+import torch
 from transformers.trainer_utils import EvalPrediction
 from spesia_research.data_models import ThresholdMap
 
@@ -280,3 +281,138 @@ def get_best_threshold(
         }
 
     return thresholds
+
+
+class CustomMetricsForGroupedSoftmax:
+    def __init__(self, mutually_exclusive_classes, label2id, *args, **kwargs):
+        self.mutually_exclusive_classes = mutually_exclusive_classes
+        self.label2id = label2id
+        self.id2label = {v: k for k, v in self.label2id.items()}
+
+    def __call__(
+        self,
+        eval_pred: EvalPrediction,
+        include_per_label_thresholds=False,
+        *args,
+        **kwargs,
+    ):
+        logits = torch.tensor(eval_pred.predictions)
+        labels = torch.tensor(eval_pred.label_ids)
+        B, L, C = logits.shape
+
+        exclusive_groups = [
+            [self.label2id[label] for label in group]
+            for group in self.mutually_exclusive_classes
+        ]
+        # Create exclusive groups max
+        exclusive_idx = sorted({i for g in exclusive_groups for i in g})
+        exclusive_mask = torch.zeros(
+            logits.size(-1), dtype=torch.bool, device=logits.device
+        )
+        exclusive_mask[exclusive_idx] = True
+
+        preds = torch.zeros_like(logits)
+        probs = torch.zeros_like(logits)
+
+        # Flatten batch and sequence for metrics
+        probs_flat = probs.reshape(-1, probs.shape[-1])
+        labels_flat = labels.reshape(-1, labels.shape[-1])
+
+        metrics = {}
+
+        # preds and probs for mutually exclusive groups
+        for g in exclusive_groups:
+            group_logits = torch.cat(
+                [logits.new_zeros((B, L, 1)), logits[..., g]], dim=-1
+            )
+            # Softmax in the log space for numerical stability
+            group_probs = (
+                group_logits.exp()
+                / torch.logsumexp(group_logits, dim=-1).view(B, L, 1).exp()
+            )
+            group_preds = group_probs.argmax(dim=-1)
+            # Update preds
+            for g_idx, label_idx in enumerate(g):
+                preds[..., label_idx] = (group_preds == g_idx + 1).float()
+            # Update probs
+            probs[..., g] = group_probs[..., 1:]
+
+        # preds and probs for non-exclusive labels
+        non_exclusive_logits = logits[..., ~exclusive_mask]
+        probs[..., ~exclusive_mask] = 1 / (1 + torch.exp(-non_exclusive_logits))
+
+        # find best threshold for each non exclusive label
+        # Multilabel case — compute a threshold PER LABEL
+        thresholds = np.linspace(0.01, 0.99, 99)
+        best_thresholds = torch.full((C,), 0.5)
+        for k in range(C):
+            y_true = labels_flat[:, k]
+            p = probs_flat[:, k]
+            best_f1_k = -1.0
+            best_t_k = 0.5
+            # Skip labels that are all one class to avoid degenerate optimization
+            # (we still keep default 0.5)
+            if (y_true.sum() == 0) or (y_true.sum() == y_true.shape[0]):
+                best_thresholds[k] = best_t_k
+                continue
+            for t in thresholds:
+                y_pred_k = p > t
+                f1_k = f1_score(y_true, y_pred_k, average="binary", zero_division=0)
+                if f1_k > best_f1_k:
+                    best_f1_k = f1_k
+                    best_t_k = t
+            best_thresholds[k] = best_t_k
+
+        non_exclusive_thresholds = best_thresholds[~exclusive_mask]
+        non_exclusive_probs = probs[..., ~exclusive_mask]
+        preds[..., ~exclusive_mask] = (
+            non_exclusive_probs > non_exclusive_thresholds
+        ).float()
+        preds_flat = preds.reshape(-1, preds.shape[-1])
+
+        # compute metrics
+        if include_per_label_thresholds:
+            metrics["best_thresholds"] = best_thresholds
+
+        metrics["best_thresholds_mean"] = best_thresholds.mean().item()
+
+        metrics["macro_precision"] = precision_score(
+            labels_flat, preds_flat, average="macro", zero_division=0
+        )
+        metrics["macro_recall"] = recall_score(
+            labels_flat, preds_flat, average="macro", zero_division=0
+        )
+        metrics["macro_f1"] = f1_score(
+            labels_flat, preds_flat, average="macro", zero_division=0
+        )
+
+        metrics["micro_precision"] = precision_score(
+            labels_flat, preds_flat, average="micro", zero_division=0
+        )
+        metrics["micro_recall"] = recall_score(
+            labels_flat, preds_flat, average="micro", zero_division=0
+        )
+        metrics["micro_f1"] = f1_score(
+            labels_flat, preds_flat, average="micro", zero_division=0
+        )
+
+        macro_ap = average_precision_score(labels_flat, probs_flat, average="macro")
+        micro_ap = average_precision_score(labels_flat, probs_flat, average="micro")
+        metrics["macro_pr_auc"] = macro_ap
+        metrics["micro_pr_auc"] = micro_ap
+
+        # Metrics per label
+        for k in range(C):
+            y_true = labels_flat[:, k]
+            y_pred = preds_flat[:, k]
+            metrics[f"precision_{self.id2label[k]}"] = precision_score(
+                y_true, y_pred, average="binary", zero_division=0
+            )
+            metrics[f"recall_{self.id2label[k]}"] = recall_score(
+                y_true, y_pred, average="binary", zero_division=0
+            )
+            metrics[f"f1_{self.id2label[k]}"] = f1_score(
+                y_true, y_pred, average="binary", zero_division=0
+            )
+
+        return metrics

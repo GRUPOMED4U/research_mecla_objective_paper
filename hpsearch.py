@@ -25,7 +25,7 @@ from spesia_research.datasets import (
     DataCollatorForMultiLabelTokenClassification,
 )
 from spesia_research.trainers import MultiLabelTokenTrainer
-from spesia_research.metrics import compute_metrics
+from spesia_research.metrics import CustomMetricsForGroupedSoftmax, compute_metrics
 from spesia_research.logs import configure_logging, get_logger
 from spesia_research.parser_utils import deep_merge, parse_kv_list
 
@@ -84,6 +84,10 @@ if __name__ == "__main__":
         "val": None,
         "test": None,
     }
+
+    if isinstance(paths, str):
+        paths = [paths]
+
     if isinstance(paths, list) and isinstance(paths[0], str):
         for dataset_path in paths:
             dataset_args["dataset_path"] = dataset_path
@@ -266,6 +270,20 @@ if __name__ == "__main__":
                         f"Selected hyperparameter -> {param}: {config['trainer_args'][param]}"
                     )
 
+            # Define metrics function
+            if (
+                config.get("trainer_args", {}).get("loss_type")
+                == "bce_with_grouped_softmax"
+            ):
+                metrics_fn = CustomMetricsForGroupedSoftmax(
+                    mutually_exclusive_classes=config["trainer_args"][
+                        "mutually_exclusive_classes"
+                    ],
+                    label2id=train_dataset.label2id,
+                )
+            else:
+                metrics_fn = compute_metrics
+
             trainer = MultiLabelTokenTrainer(
                 model=model,
                 args=training_args,
@@ -273,7 +291,7 @@ if __name__ == "__main__":
                 eval_dataset=val_dataset if val_dataset else test_dataset,
                 processing_class=tokenizer,
                 data_collator=data_collator,
-                compute_metrics=compute_metrics,
+                compute_metrics=metrics_fn,
                 pos_weight=train_dataset.pos_weight,
                 **config.get("trainer_args", {}),
             )
@@ -281,14 +299,29 @@ if __name__ == "__main__":
             # Train
             trainer.train()
 
-            # Get the metrics you want to optimize
             eval_results = trainer.evaluate()
 
-            # Return the metrics to Optuna
-            if len(hpsearch_config["metrics"]) == 1:
-                return eval_results[hpsearch_config["metrics"][0]]
+            metrics = hpsearch_config["metrics"]
 
-            return (eval_results[metric] for metric in hpsearch_config["metrics"])
+            if len(metrics) == 1:
+                return float(eval_results[metrics[0]])
+
+            trial.set_user_attr(
+                "eval_micro_f1", float(eval_results.get("eval_micro_f1", float("nan")))
+            )
+            trial.set_user_attr(
+                "eval_macro_f1", float(eval_results.get("eval_macro_f1", float("nan")))
+            )
+            trial.set_user_attr(
+                "eval_micro_pr_auc",
+                float(eval_results.get("eval_micro_pr_auc", float("nan"))),
+            )
+            trial.set_user_attr(
+                "eval_macro_pr_auc",
+                float(eval_results.get("eval_macro_pr_auc", float("nan"))),
+            )
+
+            return tuple(float(eval_results[m]) for m in metrics)
 
         # Execute hpsearch
         study.optimize(objective, n_trials=hpsearch_config["n_trials"])

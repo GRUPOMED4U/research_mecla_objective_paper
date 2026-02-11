@@ -11,6 +11,7 @@ import jsonlines
 
 from spesia_research.config import load_exp_config
 from spesia_research.logs import configure_logging, get_logger
+from spesia_research.metrics import CustomMetricsForGroupedSoftmax
 from spesia_research.trainers import EarlyStoppingCallback
 
 
@@ -442,6 +443,20 @@ if __name__ == "__main__":
             num_labels=train_dataset.num_labels,
         )
 
+        # Define metrics function
+        if (
+            config.get("trainer_args", {}).get("loss_type")
+            == "bce_with_grouped_softmax"
+        ):
+            metrics_fn = CustomMetricsForGroupedSoftmax(
+                mutually_exclusive_classes=config["trainer_args"][
+                    "mutually_exclusive_classes"
+                ],
+                label2id=train_dataset.label2id,
+            )
+        else:
+            metrics_fn = compute_metrics
+
         # Load trainer
         trainer = MultiLabelTokenTrainer(
             model=model,
@@ -454,7 +469,7 @@ if __name__ == "__main__":
             ),
             processing_class=tokenizer,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=metrics_fn,
             callbacks=[
                 EarlyStoppingCallback(patience=config["early_stopping_patience"])
             ],
@@ -574,8 +589,11 @@ if __name__ == "__main__":
 
         # Compute metrics
         pred_output = trainer.predict(test_dataset)
-        probs = 1 / (1 + np.exp(-pred_output.predictions))
+        logits = pred_output.predictions
         labels = pred_output.label_ids.astype(int)
+
+        probs = 1 / (1 + np.exp(-pred_output.predictions))
+
         threshold_map = {}
 
         # For single-label: flatten arrays
@@ -588,7 +606,17 @@ if __name__ == "__main__":
             labels_flat = labels.reshape(-1, labels.shape[-1])
 
         # --- Precision–Recall ---
+        mutually_exclusive_labels = [
+            label
+            for group in config["trainer_args"].get("mutually_exclusive_classes", [])
+            for label in group
+        ]
         for i in range(probs_flat.shape[-1] if probs_flat.ndim > 1 else 1):
+            # skip mutually exclusive labels if grouped softmax is used
+            if config["trainer_args"].get("loss_type") == "bce_with_grouped_softmax":
+                if test_dataset.labels_to_consider[i] in mutually_exclusive_labels:
+                    continue
+
             y_score = probs_flat[:, i] if probs_flat.ndim > 1 else probs_flat
             y_true = labels_flat[:, i] if probs_flat.ndim > 1 else labels_flat
             label_type = config["dataset_args"].get("label_type", "tags")
@@ -637,6 +665,7 @@ if __name__ == "__main__":
                     "pr_auc": v["pr_auc"],
                 }
                 for k, v in threshold_map.items()
+                if k not in mutually_exclusive_labels
             }
 
             test_set_metrics["run_name"] = config["run_name"]

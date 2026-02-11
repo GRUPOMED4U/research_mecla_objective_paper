@@ -116,3 +116,11 @@ stages:
     cmd: python train.py --config experiments/nestedclinbr_mmbert_mecla.yaml ${global_options}
     deps:
       - datasets/nested_clin_dataset
+
+  exp_6_mecla:
+    matrix:
+      experiment: ${models}
+      random_seed: ${random_seed}
+    cmd: python train.py --config experiments/exp_6_mecla_${item.experiment}.yaml --set dataset_args.random_seed=${item.random_seed} ${global_options}
+    outs:
+      - experiments/exp_6_mecla_${item.experiment}/metrics_data_split_seed_${item.random_seed}.jsonl
