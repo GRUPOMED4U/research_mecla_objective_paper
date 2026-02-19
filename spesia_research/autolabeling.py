@@ -34,11 +34,6 @@ class AutoAnnotator:
         self.prediction_type = prediction_type
         self.mutually_exclusive_classes = mutually_exclusive_classes
 
-        if self.best_thresholds is None:
-            self.best_thresholds = [
-                v["threshold"] for k, v in model.config.thresholds.items()
-            ]
-
         if self.idx_to_label is None:
             self.idx_to_label = model.config.id2label
 
@@ -51,6 +46,16 @@ class AutoAnnotator:
             device=self.device,
         )
         self.batch_size = batch_size
+
+        if self.best_thresholds is None:
+            self.best_thresholds = torch.tensor(
+                [v["threshold"] for k, v in model.config.thresholds.items()]
+            )
+
+        if isinstance(self.best_thresholds, List):
+            self.best_thresholds = torch.tensor(self.best_thresholds)
+
+        self.best_thresholds = self.best_thresholds.to(self.device)
 
     @classmethod
     def from_pretrained(
@@ -122,9 +127,7 @@ class AutoAnnotator:
             ]
             non_exclusive_logits = logits[..., ~exclusive_mask]
             non_exclusive_probs = 1 / (1 + torch.exp(-non_exclusive_logits))
-            non_exclusive_thresholds = torch.tensor(
-                best_thresholds, device=self.device
-            )[~exclusive_mask]
+            non_exclusive_thresholds = torch.tensor(best_thresholds, device=self.device)
             preds[..., ~exclusive_mask] = (
                 non_exclusive_probs > non_exclusive_thresholds
             ).float()
@@ -197,7 +200,10 @@ class AutoAnnotator:
         return list(merged_annotations.values())
 
     def annotate(
-        self, dataset_path: Path | str = None, dataset: ClinicalRecordsDataset = None
+        self,
+        dataset_path: Path | str = None,
+        dataset: ClinicalRecordsDataset = None,
+        texts: List[str] = None,
     ) -> ClinicalRecordsDataset:
         """
         Annotates the records in the dataset using the model.
@@ -215,7 +221,13 @@ class AutoAnnotator:
         if dataset is not None:
             self.dataset = dataset
         elif dataset_path is not None:
-            self.dataset = ClinicalRecordsDataset(dataset_path, self.tokenizer)
+            self.dataset = ClinicalRecordsDataset(
+                dataset_path, tokenizer=self.tokenizer
+            )
+        elif texts is not None:
+            self.dataset = ClinicalRecordsDataset.from_list_of_strings(
+                texts, tokenizer=self.tokenizer
+            )
         else:
             raise ValueError("Either dataset_path or dataset must be provided")
 
