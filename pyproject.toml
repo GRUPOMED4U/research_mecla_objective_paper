@@ -43,6 +43,7 @@ dependencies = [
     "mkdocstrings-python>=2.0.1",
     "cliffs-delta>=1.0.0",
     "conllu>=6.0.0",
+    "gradio>=6.5.1",
 ]
 
 [tool.uv]

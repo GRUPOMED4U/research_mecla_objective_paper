@@ -2,7 +2,7 @@
 Custom trainers and callbacks for the spesia_research package
 """
 
-from typing import Literal
+from typing import List, Literal, Optional
 import torch
 from torchvision.ops import sigmoid_focal_loss
 
@@ -53,7 +53,7 @@ class MultiLabelTokenTrainer(Trainer):
     def __init__(
         self,
         *args,
-        pos_weight=None,
+        pos_weight: Optional[torch.Tensor] = None,
         loss_type: Literal["bce", "focal_loss", "bce_with_mecla"] = "bce",
         focal_loss_alpha: float = 0.25,
         focal_loss_gamma: float = 2.0,
@@ -296,7 +296,7 @@ class MultiLabelTokenTrainer(Trainer):
 
         # added: grouped softmax
         elif self.loss_type == "bce_with_grouped_softmax":
-            exclusive_groups = [
+            exclusive_groups: List[List[int]] = [
                 [self.model.config.label2id[label] for label in group]
                 for group in self.mutually_exclusive_classes
             ]
@@ -343,9 +343,16 @@ class MultiLabelTokenTrainer(Trainer):
                 # If >1 active (contradiction), ignore
                 target = target.masked_fill(n_active > 1, -100)
 
+                if self.pos_weight is not None:
+                    ce_weights = torch.ones(len(g) + 1, device=device)  # [1+|g|]
+                    ce_weights[1:] = self.pos_weight[g]
+                else:
+                    ce_weights = None
+
                 ce = torch.nn.functional.cross_entropy(
                     group_logits.view(-1, group_logits.size(-1)),
                     target.view(-1),
+                    weight=ce_weights,
                     reduction="none",
                     ignore_index=-100,
                 ).view(B, L)

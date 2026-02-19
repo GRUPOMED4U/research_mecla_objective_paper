@@ -123,6 +123,7 @@ class MECLALoss:
             reduction="none",
             pos_weight=pos_weight,
         )
+        self.pos_weight = pos_weight
 
     def __call__(
         self,
