@@ -1,3 +1,4 @@
+# written with ChatGPT, tested with random data and trained model
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -74,6 +75,39 @@ class _StreamingBrier:
     def compute(self) -> float:
         denom = self.count.clamp_min(1.0)
         return float((self.sum_bs / denom).item())
+
+
+
+@dataclass
+class _StreamingConfusion:
+    k: int
+    device: torch.device
+    dtype: torch.dtype = torch.float32
+
+    def __post_init__(self) -> None:
+        self.mat = torch.zeros((self.k, self.k), device=self.device, dtype=self.dtype)  # [true, pred]
+
+    @torch.no_grad()
+    def update(self, y_true: torch.Tensor, y_pred: torch.Tensor) -> None:
+        """
+        y_true, y_pred: [N] ints in 0..k-1
+        """
+        y_true = y_true.to(torch.long)
+        y_pred = y_pred.to(torch.long)
+        idx = y_true * self.k + y_pred
+        counts = torch.bincount(idx, minlength=self.k * self.k).to(self.dtype)
+        self.mat += counts.view(self.k, self.k)
+
+    def compute(self) -> Dict[str, Any]:
+        total = self.mat.sum().clamp_min(1.0)
+        acc = (torch.diag(self.mat).sum() / total).item()
+        return {
+            "confusion": self.mat.detach().cpu().tolist(),
+            "accuracy": float(acc),
+            "support_true": self.mat.sum(dim=1).detach().cpu().tolist(),  # per true class
+            "support_pred": self.mat.sum(dim=0).detach().cpu().tolist(),  # per predicted class
+            "total": float(total.item()),
+        }
 
 # -------------------------
 # Helpers
@@ -288,6 +322,90 @@ def brier(
     out["brier_macro"] = float(sum(out[f"brier_group_{i}"] for i in range(len(aggs))) / max(len(aggs), 1))
     return out
 
+@torch.no_grad()
+def group_confusion(
+    model: torch.nn.Module,
+    test_data: Iterable[Dict[str, Any]],
+    loss_type: str,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    diagnostic_function(model, test_data, loss_type, **kwargs) -> dict
+
+    Current support:
+      - loss_type == "bce_with_grouped_softmax": per-group 3x3 confusion over {0, +, -}
+        where 0 is implicit (none-of-group).
+
+    Required kwargs:
+      - mutually_exclusive_classes: list[list[int|str]]
+
+    Optional kwargs:
+      - unk_logit: float = 0.0
+      - device: str|torch.device = None
+      - max_batches: int|None
+
+    The question we can answer with this:
+    1. What kind of mistakes is the model making: false mentions, missed mentions, polarity flips?
+      - False mentions (true 0 -> pred +/−): 0 (never predicts +/−)
+      - Polarity flips (+ <-> −): 0 (never predicts +/−).
+      - Missed mentions (true +/− → pred 0): all non-zero truths are missed.
+    2. Is the model collapsing to a default class for a group?
+    3. What is the class-conditional performance (not just a single accuracy)? [kind of redundant but still useful]
+    4. Which group(s) are the bottleneck, and in what way? [too specific for now]
+      - i.e. Group A has higher missed mention than Group B.
+    """
+    unk_logit: float = float(kwargs.get("unk_logit", 0.0))
+    device = _infer_device(model, kwargs.get("device", None))
+    max_batches = kwargs.get("max_batches", None)
+
+    model = model.to(device)
+    model.eval()
+
+    if loss_type != "bce_with_grouped_softmax":
+        raise NotImplementedError("group_confusion() currently implemented for loss_type='bce_with_grouped_softmax' only.")
+
+    groups_raw = kwargs.get("mutually_exclusive_classes", None)
+    if groups_raw is None:
+        raise ValueError("Provide mutually_exclusive_classes=... in kwargs.")
+
+    label2id = getattr(getattr(model, "config", None), "label2id", None)
+    groups = _groups_to_indices(groups_raw, label2id)
+
+    # for your project these are 2-way groups -> K=3 with implicit 0
+    aggs = [_StreamingConfusion(k=3, device=device) for _ in groups]
+
+    for bi, batch in enumerate(test_data):
+        if max_batches is not None and bi >= int(max_batches):
+            break
+
+        batch = _to_device(batch, device)
+        labels = batch["labels"]
+        attn = batch.get("attention_mask", None)
+        if attn is None:
+            attn = torch.ones_like(batch["input_ids"], dtype=torch.long, device=device)
+        m = attn.bool()
+
+        inputs = {k: v for k, v in batch.items() if k != "labels"}
+        out = model(**inputs)
+        logits = out.logits
+
+        # normalize to [B,L,C]
+        if logits.ndim == 2:
+            logits = logits.unsqueeze(1)
+            labels = labels.unsqueeze(1)
+            m = m.unsqueeze(1) if m.ndim == 1 else m
+
+        labels = labels.to(torch.bool)
+
+        for gi, g in enumerate(groups):
+            probs, y = _group_probs_and_targets(logits, labels, g, unk_logit=unk_logit)  # probs [B,L,3], y [B,L]
+            pred = probs.argmax(dim=-1)                                                   # [B,L] in 0..2
+
+            yy = y[m].view(-1)
+            pp = pred[m].view(-1)
+            aggs[gi].update(yy, pp)
+
+    return {f"group_{i}": aggs[i].compute() for i in range(len(aggs))}
 
 ## sample call for ECE
 # from transformers import AutoModelForTokenClassification
@@ -314,3 +432,19 @@ def brier(
 #     mutually_exclusive_classes=groups_idx,
 # )
 # report
+
+## sample call for group_confusion (per-group confusion / error modes)
+# from transformers import AutoModelForTokenClassification
+# from spesia_research.diagnostics import group_confusion
+#
+# rep = group_confusion(
+#     model=model,
+#     test_data=test_loader,
+#     loss_type="bce_with_grouped_softmax",
+#     mutually_exclusive_classes=[
+#         ["HER2_POSITIVO", "HER2_NEGATIVO"],
+#         ["RE_POSITIVO", "RE_NEGATIVO"],
+#         ["RP_POSITIVO", "RP_NEGATIVO"],
+#     ],
+# )
+# print(rep)
