@@ -6,9 +6,9 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 import torch
 
 
-# -------------------------
-# Core: streaming top-1 ECE
-# -------------------------
+# ---------------------------
+# Core: streaming diagnostics
+# ---------------------------
 @dataclass
 class _StreamingECE:
     n_bins: int
@@ -45,6 +45,35 @@ class _StreamingECE:
         ece = ((self.counts / n) * (avg_acc - avg_conf).abs()).sum()
         return float(ece.item())
 
+@dataclass
+class _StreamingBrier:
+    device: torch.device
+    dtype: torch.dtype = torch.float32
+
+    def __post_init__(self) -> None:
+        self.sum_bs = torch.zeros((), device=self.device, dtype=self.dtype)
+        self.count = torch.zeros((), device=self.device, dtype=self.dtype)
+
+    @torch.no_grad()
+    def update(self, probs: torch.Tensor, y: torch.Tensor) -> None:
+        """
+        probs: [N,K] simplex
+        y:     [N] int
+        """
+        probs = probs.to(self.dtype)
+        y = y.to(torch.long)
+
+        # bs_i = sum_k p_k^2 - 2*p_y + 1
+        p2 = (probs * probs).sum(dim=1)                         # [N]
+        py = probs.gather(1, y.view(-1, 1)).squeeze(1)          # [N]
+        bs = p2 - 2.0 * py + 1.0                                # [N]
+
+        self.sum_bs += bs.sum()
+        self.count += torch.tensor(bs.numel(), device=self.device, dtype=self.dtype)
+
+    def compute(self) -> float:
+        denom = self.count.clamp_min(1.0)
+        return float((self.sum_bs / denom).item())
 
 # -------------------------
 # Helpers
@@ -186,6 +215,79 @@ def ece(
     out["ece_macro"] = float(sum(out[f"ece_group_{i}"] for i in range(len(aggs))) / max(len(aggs), 1))
     return out
 
+@torch.no_grad()
+def brier(
+    model: torch.nn.Module,
+    test_data: Iterable[Dict[str, Any]],
+    loss_type: str,
+    **kwargs,
+) -> Dict[str, float]:
+    """
+    diagnostic_function(model, test_data, loss_type, **kwargs) -> dict
+
+    Supports:
+      - loss_type == "bce_with_grouped_softmax": per-group Brier over implicit-[0]+group softmax.
+
+    Required kwargs for grouped softmax:
+      - mutually_exclusive_classes: list[list[int|str]]
+
+    Optional kwargs:
+      - unk_logit: float = 0.0
+      - device: str|torch.device = None
+      - max_batches: int|None
+    """
+    unk_logit: float = float(kwargs.get("unk_logit", 0.0))
+    device = _infer_device(model, kwargs.get("device", None))
+    max_batches = kwargs.get("max_batches", None)
+
+    model = model.to(device)
+    model.eval()
+
+    if loss_type != "bce_with_grouped_softmax":
+        raise NotImplementedError("brier() currently implemented for loss_type='bce_with_grouped_softmax' only.")
+
+    groups_raw = kwargs.get("mutually_exclusive_classes", None)
+    if groups_raw is None:
+        raise ValueError("Provide mutually_exclusive_classes=... in kwargs.")
+
+    label2id = getattr(getattr(model, "config", None), "label2id", None)
+    groups = _groups_to_indices(groups_raw, label2id)
+
+    aggs = [_StreamingBrier(device=device) for _ in groups]
+
+    for bi, batch in enumerate(test_data):
+        if max_batches is not None and bi >= int(max_batches):
+            break
+
+        batch = _to_device(batch, device)
+        labels = batch["labels"]
+        attn = batch.get("attention_mask", None)
+        if attn is None:
+            attn = torch.ones_like(batch["input_ids"], dtype=torch.long, device=device)
+        m = attn.bool()
+
+        inputs = {k: v for k, v in batch.items() if k != "labels"}
+        out = model(**inputs)
+        logits = out.logits
+
+        # normalize shapes to [B,L,C]
+        if logits.ndim == 2:
+            logits = logits.unsqueeze(1)
+            labels = labels.unsqueeze(1)
+            m = m.unsqueeze(1) if m.ndim == 1 else m
+
+        labels = labels.to(torch.bool)
+
+        for gi, g in enumerate(groups):
+            probs, y = _group_probs_and_targets(logits, labels, g, unk_logit=unk_logit)
+            p = probs[m].view(-1, probs.size(-1))
+            yy = y[m].view(-1)
+            aggs[gi].update(p, yy)
+
+    out = {f"brier_group_{i}": aggs[i].compute() for i in range(len(aggs))}
+    out["brier_macro"] = float(sum(out[f"brier_group_{i}"] for i in range(len(aggs))) / max(len(aggs), 1))
+    return out
+
 
 ## sample call for ECE
 # from transformers import AutoModelForTokenClassification
@@ -201,3 +303,14 @@ def ece(
 #     n_bins=15,
 # )
 # print(report)
+
+## sample call for Brier
+# from spesia_research.diagnostics import brier
+#
+# report = brier(
+#     model=model,
+#     test_data=test_data,
+#     loss_type="bce_with_grouped_softmax",
+#     mutually_exclusive_classes=groups_idx,
+# )
+# report
