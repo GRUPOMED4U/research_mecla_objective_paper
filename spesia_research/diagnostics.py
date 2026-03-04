@@ -195,6 +195,15 @@ def ece(
       - unk_logit: float = 0.0
       - device: str|torch.device = None
       - max_batches: int|None
+    
+    The question we can answer with this:
+    1. Are the model’s probabilities calibrated for each exclusive group (0/+/-)?
+      - If the model predicts with confidence ~c, is it correct about ~c of the time?
+    2. Which group is the most/least miscalibrated?
+      - Compare ece_group_i across groups.
+    3. Is the model’s confidence usable for thresholding/abstention?
+      - Low ECE => confidence is a reliable risk indicator
+      - High ECE => confidence is misleading.
     """
     n_bins: int = int(kwargs.get("n_bins", 15))
     unk_logit: float = float(kwargs.get("unk_logit", 0.0))
@@ -269,6 +278,14 @@ def brier(
       - unk_logit: float = 0.0
       - device: str|torch.device = None
       - max_batches: int|None
+
+    The question we can answer with this:
+    1. Which model produces better probability estimates for each exclusive group (0/+/-)?
+      - Lower brier_group_i is better.
+    2. Which group contributes most to probability error?
+      - Compare brier_group_i across groups.
+    3. Did a loss improve probability quality even if accuracy/F1 stayed similar?
+      - Brier is sensitive to “how wrong” and “how confident,” not just argmax correctness.
     """
     unk_logit: float = float(kwargs.get("unk_logit", 0.0))
     device = _infer_device(model, kwargs.get("device", None))
@@ -345,14 +362,14 @@ def group_confusion(
       - max_batches: int|None
 
     The question we can answer with this:
-    1. What kind of mistakes is the model making: false mentions, missed mentions, polarity flips?
-      - False mentions (true 0 -> pred +/−): 0 (never predicts +/−)
-      - Polarity flips (+ <-> −): 0 (never predicts +/−).
-      - Missed mentions (true +/− → pred 0): all non-zero truths are missed.
+    1. What error mode dominates per group?
+      - false mentions: true 0 -> pred (+/-)
+      - missed mentions: true (+/-) -> pred 0
+      - polarity flips: true + <-> pred -
     2. Is the model collapsing to a default class for a group?
-    3. What is the class-conditional performance (not just a single accuracy)? [kind of redundant but still useful]
-    4. Which group(s) are the bottleneck, and in what way? [too specific for now]
-      - i.e. Group A has higher missed mention than Group B.
+      - e.g., always predicting 0.
+    3. Which group is the bottleneck, and which error mode causes it? [probably too specific]
+      - compare confusion matrices across groups.
     """
     unk_logit: float = float(kwargs.get("unk_logit", 0.0))
     device = _infer_device(model, kwargs.get("device", None))
