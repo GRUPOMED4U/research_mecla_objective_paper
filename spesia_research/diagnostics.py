@@ -109,6 +109,76 @@ class _StreamingConfusion:
             "total": float(total.item()),
         }
 
+@dataclass
+class _StreamAttn:
+    device: torch.device
+    dtype: torch.dtype = torch.float32
+
+    def __post_init__(self) -> None:
+        self.sink_sum = torch.zeros((), device=self.device, dtype=self.dtype)
+        self.ent_sum = torch.zeros((), device=self.device, dtype=self.dtype)
+        self.topk_sum = torch.zeros((), device=self.device, dtype=self.dtype)
+        self.q_count = torch.zeros((), device=self.device, dtype=self.dtype)
+
+    @torch.no_grad()
+    def update(
+        self,
+        attn: torch.Tensor,           # [B,H,Q,K], softmax over K
+        attention_mask: torch.Tensor, # [B,L] 1/0
+        sink_idx: int,
+        topk: int,
+        normalize_entropy: bool,
+        eps: float = 1e-12,
+    ) -> None:
+        B, H, Q, K = attn.shape
+        m = attention_mask.to(torch.bool)
+
+        # slice masks to Q/K lengths (BERT: Q==K==L)
+        qmask = m[:, :Q]                              # [B,Q]
+        kmask = m[:, :K]                              # [B,K]
+        qmask_f = qmask[:, None, :].to(self.dtype)    # [B,1,Q]
+        kmask_f = kmask[:, None, None, :].to(self.dtype)  # [B,1,1,K]
+
+        if sink_idx < 0 or sink_idx >= K:
+            raise ValueError(f"sink_idx={sink_idx} out of range for K={K}")
+
+        # mask padded keys then renormalize over keys
+        attn = attn.to(self.dtype) * kmask_f
+        denom = attn.sum(dim=-1, keepdim=True).clamp_min(eps)
+        attn = attn / denom
+
+        # count valid queries (across batch*heads)
+        q_count = (qmask_f.sum() * H).clamp_min(0.0)
+        if q_count.item() == 0:
+            return
+        self.q_count += q_count
+
+        # sink mass
+        sink = attn[..., sink_idx]                    # [B,H,Q]
+        self.sink_sum += (sink * qmask_f).sum()
+
+        # entropy
+        ent = -(attn * attn.clamp_min(eps).log()).sum(dim=-1)  # [B,H,Q]
+        if normalize_entropy:
+            n_keys = kmask.sum(dim=-1).clamp_min(1).to(self.dtype)  # [B]
+            ent = ent / n_keys.log().view(B, 1, 1).clamp_min(eps)
+        self.ent_sum += (ent * qmask_f).sum()
+
+        # top-k mass
+        k = int(min(max(topk, 1), K))
+        topk_mass = attn.topk(k, dim=-1).values.sum(dim=-1)    # [B,H,Q]
+        self.topk_sum += (topk_mass * qmask_f).sum()
+
+    def compute(self) -> Dict[str, float]:
+        denom = self.q_count.clamp_min(1.0)
+        return {
+            "sink_mass": float((self.sink_sum / denom).item()),
+            "attn_entropy": float((self.ent_sum / denom).item()),
+            "attn_topk_mass": float((self.topk_sum / denom).item()),
+        }
+
+
+
 # -------------------------
 # Helpers
 # -------------------------
@@ -424,6 +494,119 @@ def group_confusion(
 
     return {f"group_{i}": aggs[i].compute() for i in range(len(aggs))}
 
+@torch.no_grad()
+def attention_sinks(
+    model: torch.nn.Module,
+    test_data: Iterable[Dict[str, Any]],
+    loss_type: str,   # kept for uniform signature; unused
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    diagnostic_function(model, test_data, loss_type, **kwargs) -> dict
+
+    Purpose:
+      Attention concentration diagnostics (NOT causal explanations). Uses attention weights
+      A^{(l)}[b,h,q,k] returned by model(..., output_attentions=True).
+
+    Returns:
+      - sink_mass: global mean attention paid to a fixed sink key position (sink_idx, default 0).
+      - attn_entropy: mean Shannon entropy of attention rows (optionally normalized).
+      - attn_topk_mass: mean sum of the top-k attention weights per query.
+      - per_layer: same metrics as lists over layers (length = #layers).
+
+    Note:
+      - Needs access to the attention weights, currently forces it with:
+        model.set_attn_implementation("eager")
+
+    Required kwargs:
+      - None
+
+    Optional kwargs:
+      - device: str|torch.device = None
+      - max_batches: int|None
+      - sink_idx: int = 0          (which key position is treated as the sink)
+      - topk: int = 5             (k for top-k mass)
+      - normalize_entropy: bool = True  (divide entropy by log(#valid_keys))
+
+    Metric definitions (per attention row over keys k):
+      - sink_mass(q) = A[q, sink_idx]
+      - entropy(q) = - sum_k A[q,k] log A[q,k]
+        normalized_entropy(q) = entropy(q) / log(#valid_keys)
+      - topk_mass(q) = sum_{k in TopK(A[q,*])} A[q,k]
+
+    Paper pointers:
+      - sink_mass / attention sinks: "StreamingLLM" (Xiao et al., 2023), arXiv:2309.17453
+        https://arxiv.org/abs/2309.17453
+      - attention entropy (Shannon entropy on attention rows): Zhai et al., ICML 2023 (PMLR)
+        https://proceedings.mlr.press/v202/zhai23a.html
+      - top-k mass as attention concentration summary: commonly used as a sparsity/concentration proxy
+        alongside entropy in attention analysis (e.g., Riffi-Aslett & Fell, 2026)
+        https://link.springer.com/article/10.1007/s00138-025-01781-x
+
+    The questions we can answer with this:
+      1. Does the model exhibit sink behavior (e.g., excessive attention to [CLS] at position 0)?
+         - Higher sink_mass suggests stronger sink usage.
+      2. Is attention distributed or concentrated?
+         - Lower attn_entropy and higher attn_topk_mass indicate more concentration.
+      3. How does attention concentration evolve across layers?
+         - Use per_layer curves to see early vs late layer behavior.
+
+    Notes:
+      - For long sequences, output_attentions can be heavy: attention tensors scale as O(L^2).
+    """
+    device = _infer_device(model, kwargs.get("device", None))
+    max_batches = kwargs.get("max_batches", None)
+    sink_idx = int(kwargs.get("sink_idx", 0))
+    topk = int(kwargs.get("topk", 5))
+    normalize_entropy = bool(kwargs.get("normalize_entropy", True))
+
+    model = model.to(device)
+    model.eval()
+    # this is to make sure that we get the attention matrices
+    if hasattr(model, "set_attn_implementation"):
+        model.set_attn_implementation("eager")
+
+    global_stats = _StreamAttn(device=device)
+    per_layer_stats = None
+
+    for bi, batch in enumerate(test_data):
+        if max_batches is not None and bi >= int(max_batches):
+            break
+
+        batch = _to_device(batch, device)
+        attn_mask = batch.get("attention_mask", None)
+        if attn_mask is None:
+            attn_mask = torch.ones_like(batch["input_ids"], dtype=torch.long, device=device)
+
+        inputs = {k: v for k, v in batch.items() if k != "labels"}
+        out = model(**inputs, output_attentions=True, return_dict=True)
+        attns = getattr(out, "attentions", None)
+        if attns is None:
+            raise ValueError("No attentions returned. Model must support output_attentions=True.")
+
+        if per_layer_stats is None:
+            per_layer_stats = [_StreamAttn(device=device) for _ in range(len(attns))]
+
+        for li, A in enumerate(attns):
+            per_layer_stats[li].update(A, attn_mask, sink_idx, topk, normalize_entropy)
+            global_stats.update(A, attn_mask, sink_idx, topk, normalize_entropy)
+
+    out = global_stats.compute()
+    # just in case: some models may not return attentions, this makes it clear.
+    attns = getattr(out, "attentions", None)
+    if not attns:  # None or empty tuple/list
+        raise ValueError(
+            "No attentions returned. Use attn_implementation='eager' (SDPA/Flash usually can't return weights)."
+        )
+    if per_layer_stats is not None:
+        out["per_layer"] = {
+            "sink_mass": [s.compute()["sink_mass"] for s in per_layer_stats],
+            "attn_entropy": [s.compute()["attn_entropy"] for s in per_layer_stats],
+            "attn_topk_mass": [s.compute()["attn_topk_mass"] for s in per_layer_stats],
+        }
+    return out
+
+
 ## sample call for ECE
 # from transformers import AutoModelForTokenClassification
 # from spesia_research.diagnostics import ece
@@ -465,3 +648,54 @@ def group_confusion(
 #     ],
 # )
 # print(rep)
+
+## sample call for attention_sinks
+# from spesia_research.diagnostics import attention_sinks
+
+# report = attention_sinks(
+#     model=model,
+#     test_data=test_data,
+#     loss_type="bce_with_grouped_softmax",
+#     sink_idx=0,
+#     topk=5,
+#     normalize_entropy=True,
+#     max_batches=5,
+# )
+# report
+## and then for plotting:
+# import matplotlib.pyplot as plt
+#
+# layers = list(range(1, len(report["per_layer"]["sink_mass"]) + 1))
+#
+## sink mass
+# plt.figure()
+# plt.plot(layers, report["per_layer"]["sink_mass"], marker="o")
+# plt.xlabel("Layer")
+# plt.ylabel("Sink mass (to sink_idx)")
+# plt.title("Attention sink mass by layer")
+# plt.grid(True)
+# plt.show()
+#
+## entropy
+# plt.figure()
+# plt.plot(layers, report["per_layer"]["attn_entropy"], marker="o")
+# plt.xlabel("Layer")
+# plt.ylabel("Attention entropy (normalized)")
+# plt.title("Attention entropy by layer")
+# plt.grid(True)
+# plt.show()
+#
+## top-k mass
+# plt.figure()
+# plt.plot(layers, report["per_layer"]["attn_topk_mass"], marker="o")
+# plt.xlabel("Layer")
+# plt.ylabel(f"Top-k mass (k={5})")
+# plt.title("Top-k attention mass by layer")
+# plt.grid(True)
+# plt.show()
+
+# # global summary
+# print(
+#     "global:",
+#     {k: report[k] for k in ["sink_mass", "attn_entropy", "attn_topk_mass"]}
+# )
