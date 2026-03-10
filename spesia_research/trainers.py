@@ -9,7 +9,7 @@ from torchvision.ops import sigmoid_focal_loss
 from transformers import Trainer, TrainerState, TrainingArguments, TrainerControl
 from transformers import TrainerCallback
 
-from spesia_research.loss import MECLALoss, PairwiseMECLALoss
+from spesia_research.loss import GroupedSoftmaxLoss, MECLALoss, PairwiseMECLALoss
 
 
 class EarlyStoppingCallback(TrainerCallback):
@@ -54,7 +54,13 @@ class MultiLabelTokenTrainer(Trainer):
         self,
         *args,
         pos_weight: Optional[torch.Tensor] = None,
-        loss_type: Literal["bce", "focal_loss", "bce_with_mecla"] = "bce",
+        loss_type: Literal[
+            "bce",
+            "focal_loss",
+            "bce_with_mecla",
+            "bce_with_grouped_softmax",
+            "bce_with_grouped_softmax_as_penalty",
+        ] = "bce",
         focal_loss_alpha: float = 0.25,
         focal_loss_gamma: float = 2.0,
         mutually_exclusive_classes: list[list[str, str]] = None,
@@ -225,6 +231,12 @@ class MultiLabelTokenTrainer(Trainer):
         attn_mask = inputs["attention_mask"]  # [B, L]
         attn = attn_mask.unsqueeze(-1)  # [B, L, 1]
 
+        if self.mutually_exclusive_classes is not None:
+            mutually_exclusive_classes_indices = [
+                [self.model.config.label2id[label] for label in label_group]
+                for label_group in self.mutually_exclusive_classes
+            ]
+
         if self.pos_weight is not None:
             self.pos_weight = self.pos_weight.to(logits.device)
 
@@ -238,13 +250,10 @@ class MultiLabelTokenTrainer(Trainer):
             loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         elif self.loss_type == "bce_with_mecla":
-            mutually_exclusive_classes_indices = [
-                [self.model.config.label2id[label] for label in label_group]
-                for label_group in self.mutually_exclusive_classes
-            ]
             loss_fct = MECLALoss(
                 pos_weight=self.pos_weight,
                 mutually_exclusive_classes_indices=mutually_exclusive_classes_indices,
+                mecla_amplification_factor=self.mecla_amplification_factor,
             )
             loss = loss_fct(
                 logits,
@@ -260,14 +269,10 @@ class MultiLabelTokenTrainer(Trainer):
             loss = (loss * attn).sum() / attn.sum().clamp(min=1)
 
         elif self.loss_type == "bce_with_pairwise_mecla":
-            mutually_exclusive_classes_indices = [
-                [self.model.config.label2id[label] for label in label_group]
-                for label_group in self.mutually_exclusive_classes
-            ]
-
             loss_fct = PairwiseMECLALoss(
                 pos_weight=self.pos_weight,
                 mutually_exclusive_classes_indices=mutually_exclusive_classes_indices,
+                mecla_amplification_factor=self.mecla_amplification_factor,
             )
             loss = loss_fct(
                 logits,
@@ -296,71 +301,23 @@ class MultiLabelTokenTrainer(Trainer):
 
         # added: grouped softmax
         elif self.loss_type == "bce_with_grouped_softmax":
-            exclusive_groups: List[List[int]] = [
-                [self.model.config.label2id[label] for label in group]
-                for group in self.mutually_exclusive_classes
-            ]
-
-            exclusive_idx = sorted({i for g in exclusive_groups for i in g})
-            exclusive_mask = torch.zeros(
-                logits.size(-1), dtype=torch.bool, device=logits.device
+            loss_fct = GroupedSoftmaxLoss(
+                mecla_amplification_factor=self.mecla_amplification_factor,
+                mutually_exclusive_classes_indices=mutually_exclusive_classes_indices,
+                pos_weight=self.pos_weight,
             )
-            exclusive_mask[exclusive_idx] = True
 
-            # usual BCE on non-exclusive groups
-            loss_bce = 0.0
-            if (~exclusive_mask).any():
-                loss_fct = torch.nn.BCEWithLogitsLoss(
-                    reduction="none", pos_weight=self.pos_weight
-                )
-                bce_full = loss_fct(logits, labels.float())  # [B,L,C]
-                bce_non_excl = bce_full[..., ~exclusive_mask]  # [B,L,C_non_excl]
-                loss_bce = (bce_non_excl * attn).sum() / attn.sum().clamp(min=1)
+            loss = loss_fct(logits, labels.float(), inputs["attention_mask"])
 
-            # grouped softmax on exclusive groups
-            B, L, C = logits.shape
-            device = logits.device
-            attn2 = inputs["attention_mask"].to(logits.dtype)  # [B,L]
-            denom = attn2.sum().clamp(min=1)
+        elif self.loss_type == "bce_with_grouped_softmax_as_penalty":
+            loss_fct = GroupedSoftmaxLoss(
+                mecla_amplification_factor=self.mecla_amplification_factor,
+                mutually_exclusive_classes_indices=mutually_exclusive_classes_indices,
+                pos_weight=self.pos_weight,
+                as_penalty=True,
+            )
 
-            loss_ce_sum = logits.new_zeros(())
-            for g in exclusive_groups:
-                group_logits = torch.cat(
-                    [logits.new_zeros((B, L, 1)), logits[..., g]], dim=-1
-                )  # [B,L,1+|g|]: NONE=0
-
-                y = labels[..., g].float()  # [B,L,|g|]
-                active = y > 0.5
-                n_active = active.sum(dim=-1)  # [B,L]
-
-                target = torch.zeros((B, L), dtype=torch.long, device=device)  # NONE=0
-                # If exactly one active, set target to its 1-based index
-                one_active = n_active == 1
-                if one_active.any():
-                    idx = active[one_active].long().argmax(dim=-1)  # [N]
-                    target[one_active] = idx + 1
-
-                # If >1 active (contradiction), ignore
-                target = target.masked_fill(n_active > 1, -100)
-
-                if self.pos_weight is not None:
-                    ce_weights = torch.ones(len(g) + 1, device=device)  # [1+|g|]
-                    ce_weights[1:] = self.pos_weight[g]
-                else:
-                    ce_weights = None
-
-                ce = torch.nn.functional.cross_entropy(
-                    group_logits.view(-1, group_logits.size(-1)),
-                    target.view(-1),
-                    weight=ce_weights,
-                    reduction="none",
-                    ignore_index=-100,
-                ).view(B, L)
-
-                loss_ce_sum = loss_ce_sum + (ce * attn2).sum() / denom
-
-            # loss = non-exclusive BCE + MECLA-amplified CE on grouped softmax
-            loss = loss_bce + self.mecla_amplification_factor * loss_ce_sum
+            loss = loss_fct(logits, labels.float(), inputs["attention_mask"])
 
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")

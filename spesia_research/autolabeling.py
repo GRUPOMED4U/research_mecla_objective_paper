@@ -21,6 +21,7 @@ class AutoAnnotator:
         model: AutoModelForTokenClassification,
         best_thresholds: list[float] = None,
         idx_to_label: dict[int, str] = None,
+        rename_labels: dict[str, str] = None,
         max_length: int = 512,
         batch_size: int = 10,
         prediction_type: Literal["sigmoid", "softmax", "grouped_softmax"] = "sigmoid",
@@ -36,6 +37,11 @@ class AutoAnnotator:
 
         if self.idx_to_label is None:
             self.idx_to_label = model.config.id2label
+
+        if rename_labels is not None:
+            self.idx_to_label = {
+                k: rename_labels.get(v, v) for k, v in self.idx_to_label.items()
+            }
 
         self.max_length = max_length
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -172,7 +178,6 @@ class AutoAnnotator:
 
     def _merge_annotations(self, annotations: list[Annotation]):
         annotations = deepcopy(annotations)
-        # merge annotations
         merged_annotations = {}
         for ann in annotations:
             for tag in ann.tags:
@@ -197,7 +202,13 @@ class AutoAnnotator:
                     )
                     merged_annotations[(new_ann.end, tag)] = new_ann
 
-        return list(merged_annotations.values())
+        # fix token shift due to <bos> token
+        annotations = list(merged_annotations.values())
+        for ann in annotations:
+            ann.end = ann.end - 1
+            ann.start = ann.start - 1
+
+        return annotations
 
     def annotate(
         self,

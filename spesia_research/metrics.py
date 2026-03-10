@@ -304,7 +304,7 @@ class CustomMetricsForGroupedSoftmax:
             [self.label2id[label] for label in group]
             for group in self.mutually_exclusive_classes
         ]
-        # Create exclusive groups max
+        # Create exclusive groups mask
         exclusive_idx = sorted({i for g in exclusive_groups for i in g})
         exclusive_mask = torch.zeros(
             logits.size(-1), dtype=torch.bool, device=logits.device
