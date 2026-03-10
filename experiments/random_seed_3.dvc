@@ -1,0 +1,6 @@
+outs:
+- md5: 697c681d5df4956a24177fb1693b333a.dir
+  size: 7307632402
+  nfiles: 36
+  hash: md5
+  path: random_seed_3

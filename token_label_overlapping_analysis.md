@@ -28,13 +28,25 @@ Number of entities with mutually exclusive tags that overlap:
 
 |**Pair of labels**                 | **Number of entities**|
 |-----------------------------------|-----------------------------|
-|('HER2_NEGATIVO', 'HER2_POSITIVO') | 113 (4.6% increase)         |
-|('RP_NEGATIVO', 'RP_POSITIVO')     | 44 (10% reduction)          |
-|('RE_NEGATIVO', 'RE_POSITIVO')     | 1  (94% reduction)          |
+|('HER2_NEGATIVO', 'HER2_POSITIVO') | 35 (68% reduction)          |
+|('RP_NEGATIVO', 'RP_POSITIVO')     | 24 (51% reduction)          |
+|('RE_NEGATIVO', 'RE_POSITIVO')     | 15 (17% reduction)          |
 
 ---
 
 **BCE + Grouped Sofmax**:
+
+Number of entities with mutually exclusive tags that overlap:
+
+|**Pair of labels**                 | **Number of entities**|
+|-----------------------------------|-----------------------------|
+|('HER2_NEGATIVO', 'HER2_POSITIVO') | 0 (100% reduction)          |
+|('RP_NEGATIVO', 'RP_POSITIVO')     | 0 (100% reduction)          |
+|('RE_NEGATIVO', 'RE_POSITIVO')     | 0 (100% reduction)          |
+
+---
+
+**BCE + Grouped Sofmax as penalty**:
 
 Number of entities with mutually exclusive tags that overlap:
 

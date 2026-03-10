@@ -271,10 +271,10 @@ if __name__ == "__main__":
                     )
 
             # Define metrics function
-            if (
-                config.get("trainer_args", {}).get("loss_type")
-                == "bce_with_grouped_softmax"
-            ):
+            if config.get("trainer_args", {}).get("loss_type") in [
+                "bce_with_grouped_softmax",
+                "bce_with_grouped_softmax_as_penalty",
+            ]:
                 metrics_fn = CustomMetricsForGroupedSoftmax(
                     mutually_exclusive_classes=config["trainer_args"][
                         "mutually_exclusive_classes"

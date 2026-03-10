@@ -19,7 +19,7 @@ Losses implemented in this module include:
 
 import torch
 from torch import Tensor
-from typing import Any
+from typing import Any, List
 
 
 class MECLALoss:
@@ -532,4 +532,99 @@ class PairwiseMECLALoss(MECLALoss):
             penalty_per_token += (probs * mids_mask).sum(dim=-1)
 
         loss += self.mecla_amplification_factor * penalty_per_token.unsqueeze(-1)
+        return loss
+
+
+class GroupedSoftmaxLoss:
+    def __init__(
+        self,
+        mecla_amplification_factor: float = 1.0,
+        mutually_exclusive_classes_indices: list[tuple[int, int]] = None,
+        pos_weight: Tensor | None = None,
+        as_penalty: bool = False,
+    ):
+        self.mutually_exclusive_classes_indices = mutually_exclusive_classes_indices
+        self.pos_weight = pos_weight
+        self.bce_loss = torch.nn.BCEWithLogitsLoss(
+            reduction="none",
+            pos_weight=pos_weight,
+        )
+        self.mecla_amplification_factor = mecla_amplification_factor
+        self.as_penalty = as_penalty
+
+    def __call__(
+        self, logits: torch.Tensor, labels: torch.Tensor, attention_mask: torch.Tensor
+    ):
+        attn = attention_mask.unsqueeze(-1)  # [B, L, 1]
+        exclusive_groups: List[List[int]] = [
+            [label_idx for label_idx in group]
+            for group in self.mutually_exclusive_classes_indices
+        ]
+        exclusive_idx = sorted({i for g in exclusive_groups for i in g})
+        exclusive_mask = torch.zeros(
+            logits.size(-1), dtype=torch.bool, device=logits.device
+        )
+        exclusive_mask[exclusive_idx] = True
+
+        loss_bce = 0.0
+        loss_fct = torch.nn.BCEWithLogitsLoss(
+            reduction="none", pos_weight=self.pos_weight
+        )
+
+        # grouped softmax only as a regularization factor includes BCE over every label
+        if self.as_penalty:
+            bce_full = loss_fct(logits, labels.float())  # [B,L,C]
+            loss_bce = (bce_full * attn).sum() / attn.sum().clamp(min=1)
+
+        # compute BCE only over non-exclusive groups
+        elif (~exclusive_mask).any():
+            bce_full = loss_fct(logits, labels.float())  # [B,L,C]
+            bce_non_excl = bce_full[..., ~exclusive_mask]  # [B,L,C_non_excl]
+            loss_bce = (bce_non_excl * attn).sum() / attn.sum().clamp(min=1)
+
+        # grouped softmax on exclusive groups
+        B, L, C = logits.shape
+        device = logits.device
+        attn2 = attention_mask.to(logits.dtype)  # [B,L]
+        denom = attn2.sum().clamp(min=1)
+
+        loss_ce_sum = logits.new_zeros(())
+        for g in exclusive_groups:
+            group_logits = torch.cat(
+                [logits.new_zeros((B, L, 1)), logits[..., g]], dim=-1
+            )  # [B,L,1+|g|]: NONE=0
+
+            y = labels[..., g].float()  # [B,L,|g|]
+            active = y > 0.5
+            n_active = active.sum(dim=-1)  # [B,L]
+
+            target = torch.zeros((B, L), dtype=torch.long, device=device)  # NONE=0
+            # If exactly one active, set target to its 1-based index
+            one_active = n_active == 1
+            if one_active.any():
+                idx = active[one_active].long().argmax(dim=-1)  # [N]
+                target[one_active] = idx + 1
+
+            # If >1 active (contradiction), ignore
+            target = target.masked_fill(n_active > 1, -100)
+
+            if self.pos_weight is not None:
+                ce_weights = torch.ones(len(g) + 1, device=device)  # [1+|g|]
+                ce_weights[1:] = self.pos_weight[g]
+            else:
+                ce_weights = None
+
+            ce = torch.nn.functional.cross_entropy(
+                group_logits.view(-1, group_logits.size(-1)),
+                target.view(-1),
+                weight=ce_weights,
+                reduction="none",
+                ignore_index=-100,
+            ).view(B, L)
+
+            loss_ce_sum = loss_ce_sum + (ce * attn2).sum() / denom
+
+        # loss = non-exclusive BCE + MECLA-amplified CE on grouped softmax
+        loss = loss_bce + self.mecla_amplification_factor * loss_ce_sum
+
         return loss

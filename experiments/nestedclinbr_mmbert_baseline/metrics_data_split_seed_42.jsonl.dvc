@@ -1,5 +1,0 @@
-outs:
-- md5: bafb3277f5f261eb3dff3ddf56cfab5c
-  size: 200095095
-  hash: md5
-  path: metrics_data_split_seed_42.jsonl

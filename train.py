@@ -444,10 +444,10 @@ if __name__ == "__main__":
         )
 
         # Define metrics function
-        if (
-            config.get("trainer_args", {}).get("loss_type")
-            == "bce_with_grouped_softmax"
-        ):
+        if config.get("trainer_args", {}).get("loss_type") in [
+            "bce_with_grouped_softmax",
+            "bce_with_grouped_softmax_as_penalty",
+        ]:
             metrics_fn = CustomMetricsForGroupedSoftmax(
                 mutually_exclusive_classes=config["trainer_args"][
                     "mutually_exclusive_classes"
@@ -613,7 +613,10 @@ if __name__ == "__main__":
         ]
         for i in range(probs_flat.shape[-1] if probs_flat.ndim > 1 else 1):
             # skip mutually exclusive labels if grouped softmax is used
-            if config["trainer_args"].get("loss_type") == "bce_with_grouped_softmax":
+            if config["trainer_args"].get("loss_type") in [
+                "bce_with_grouped_softmax",
+                "bce_with_grouped_softmax_as_penalty",
+            ]:
                 if test_dataset.labels_to_consider[i] in mutually_exclusive_labels:
                     continue
 

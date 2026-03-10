@@ -14,7 +14,7 @@ test_dataset = ClinicalRecordsDataset(
 )
 
 # Pick a record
-GS_IDX = 228
+GS_IDX = 0
 gold_standard_text = test_dataset.records[GS_IDX].text
 
 # Flatten gold annotations into Gradio entities
@@ -28,9 +28,11 @@ gold_standard_payload = {
 }
 
 MODEL_REGISTRY = {
-    "Baseline": "experiments/baseline_mmbert/best_model",
-    "BCE + MECLA": "experiments/exp_1_mecla_mmbert/best_model",
-    "BCE + Grouped Softmax": "experiments/exp_6_mecla_mmbert/best_model",
+    "Baseline": "experiments/baseline_mmbert_random_seed_3/best_model",
+    "BCE + MECLA": "experiments/bce_with_mecla_random_seed_3/best_model",
+    "BCE + P-MECLA": "experiments/bce_with_pairwise_mecla_random_seed_3/best_model",
+    "BCE + GS": "experiments/bce_with_grouped_softmax_random_seed_3/best_model",
+    "BCE + GSp": "experiments/bce_with_grouped_softmax_as_penalty_random_seed_3/best_model",
 }
 
 MUTUALLY_EXCLUSIVE_CLASSES = [
@@ -48,6 +50,15 @@ COLOR_MAP = {
     "RE_POSITIVO": "#9E768F",
 }
 
+RENAME_LABELS = {
+    "HER2_NEGATIVO": "HER2_Negative",
+    "HER2_POSITIVO": "HER2_Positive",
+    "RP_NEGATIVO": "PR_Negative",
+    "RP_POSITIVO": "PR_Positive",
+    "RE_NEGATIVO": "ER_Negative",
+    "RE_POSITIVO": "ER_Positive",
+}
+
 
 @lru_cache
 def load_autoannotator(model_key: str):
@@ -57,10 +68,9 @@ def load_autoannotator(model_key: str):
     return AutoAnnotator(
         tokenizer,
         model,
-        prediction_type="grouped_softmax"
-        if model_key == "BCE + Grouped Softmax"
-        else "sigmoid",
+        prediction_type="grouped_softmax" if "GS" in model_key else "sigmoid",
         mutually_exclusive_classes=MUTUALLY_EXCLUSIVE_CLASSES,
+        rename_labels=RENAME_LABELS,
     )
 
 
@@ -77,7 +87,7 @@ def annotate(text: str, model_key: str):
 
 
 examples = [
-    '# Encaminhado por [NAME]  # Diagnóstico - Tumor de mama # Patologia  - TNBC; RE/RP/Her2 negativos; ki 67 90%;  # Estadiamento -  # Tratamento prévio - não tem   # Comorbidades/ Medicamentos/ toxicidade de tratamento Neg TABAGISMO E ETILISMO; nega DM ou Has; NEGA MEDICAMENTOES, nega roblemas cardiacos, fez cateterismo e dorno peito em 2021, submentida a cat , que foi normal.  # Exames 6/22 - Eco abd comesteatose; lab com elevação de glicemia;  # Hma/ EF REfere que percebe nodulo em regiçao de quadrantes nteriores de mama direia , em 11/2021. a epoca foi "drenafo" em 11/2021, sendo que em  3/2022 teve piora com aumentoda lesão em mama. No moemtno refer que vem tendo dores locais. REfere nodulos em região crvical .  # ImpTumor com grande reisco de recidiva # Plano terapêutico Tumor de mama triplo negativo com T3N1M0, proposto qt neoadjuvante com taxol semanal 80 g/m2 x 12; carbo auc 2 semanal x 12; pembro 200 mg 3/3 semanas; AC x 4 + pembro seguido de cirurgia, seguido de pembro por mais 9 ciclos. # Conduta - lab ecocardio pet ct guia qt orientações',
+    "# Encaminhado por [NAME]  # Diagnóstico - Tumor de mama # Patologia  - TNBC; RE/RP/Her2 negativos; ki 67 90%;",
 ]
 
 with gr.Blocks() as demo:
