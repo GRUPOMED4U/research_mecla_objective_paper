@@ -44,6 +44,7 @@ dependencies = [
     "cliffs-delta>=1.0.0",
     "conllu>=6.0.0",
     "gradio>=6.5.1",
+    "monai>=1.5.2",
 ]
 
 [tool.uv]

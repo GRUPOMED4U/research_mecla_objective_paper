@@ -21,6 +21,8 @@ import torch
 from torch import Tensor
 from typing import Any, List
 
+from torch import nn
+
 
 class MECLALoss:
     r"""
@@ -628,3 +630,86 @@ class GroupedSoftmaxLoss:
         loss = loss_bce + self.mecla_amplification_factor * loss_ce_sum
 
         return loss
+
+
+class MultilabelDiceLoss(nn.Module):
+    def __init__(
+        self,
+        pos_weight: torch.Tensor | None = None,
+        epsilon: float = 1e-10,
+        from_logits: bool = True,
+    ):
+        super().__init__()
+        if pos_weight is not None:
+            self.register_buffer("pos_weight", pos_weight.float())
+        else:
+            self.pos_weight = None
+
+        self.epsilon = float(epsilon)
+        self.from_logits = from_logits
+
+    def forward(
+        self,
+        logits: torch.Tensor,  # [B, T, C]
+        labels: torch.Tensor,  # [B, T, C]
+        attention_mask: torch.Tensor | None = None,  # [B, T] or [B, T, C]
+    ) -> torch.Tensor:
+        if logits.ndim != 3:
+            raise ValueError(
+                f"logits must have shape [B, T, C], got {tuple(logits.shape)}"
+            )
+
+        if labels.shape != logits.shape:
+            raise ValueError(
+                f"labels must have same shape as logits. "
+                f"Got labels={tuple(labels.shape)}, logits={tuple(logits.shape)}"
+            )
+
+        batch_size, seq_len, num_classes = logits.shape
+
+        probs = torch.sigmoid(logits) if self.from_logits else logits
+        labels = labels.float()
+
+        if attention_mask is not None:
+            if attention_mask.ndim == 2:
+                if attention_mask.shape != (batch_size, seq_len):
+                    raise ValueError(
+                        f"2D attention_mask must have shape [B, T], got {tuple(attention_mask.shape)}"
+                    )
+                mask = attention_mask.unsqueeze(-1).to(dtype=probs.dtype)  # [B, T, 1]
+            elif attention_mask.ndim == 3:
+                if attention_mask.shape != logits.shape:
+                    raise ValueError(
+                        f"3D attention_mask must have shape [B, T, C], got {tuple(attention_mask.shape)}"
+                    )
+                mask = attention_mask.to(dtype=probs.dtype)
+            else:
+                raise ValueError(
+                    f"attention_mask must have shape [B, T] or [B, T, C], got {tuple(attention_mask.shape)}"
+                )
+
+            probs = probs * mask
+            labels = labels * mask
+
+        # Compute Dice per sample and per class: [B, C]
+        intersection = (probs * labels).sum(dim=1)
+        denominator = probs.sum(dim=1) + labels.sum(dim=1)
+
+        dice_per_class = (2.0 * intersection + self.epsilon) / (
+            denominator + self.epsilon
+        )  # [B, C]
+
+        loss_per_class = 1.0 - dice_per_class  # [B, C]
+
+        if self.pos_weight is not None:
+            if self.pos_weight.ndim != 1 or self.pos_weight.numel() != num_classes:
+                raise ValueError(
+                    f"pos_weight must have shape [C], got {tuple(self.pos_weight.shape)} "
+                    f"for C={num_classes}"
+                )
+            if (self.pos_weight < 0).any():
+                raise ValueError("pos_weight values must be non-negative.")
+
+            loss_per_class = loss_per_class * self.pos_weight.view(1, num_classes)
+
+        return loss_per_class.mean()

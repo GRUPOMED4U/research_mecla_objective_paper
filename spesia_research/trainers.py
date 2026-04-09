@@ -2,14 +2,19 @@
 Custom trainers and callbacks for the spesia_research package
 """
 
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 import torch
 from torchvision.ops import sigmoid_focal_loss
 
 from transformers import Trainer, TrainerState, TrainingArguments, TrainerControl
 from transformers import TrainerCallback
 
-from spesia_research.loss import GroupedSoftmaxLoss, MECLALoss, PairwiseMECLALoss
+from spesia_research.loss import (
+    GroupedSoftmaxLoss,
+    MECLALoss,
+    MultilabelDiceLoss,
+    PairwiseMECLALoss,
+)
 
 
 class EarlyStoppingCallback(TrainerCallback):
@@ -60,6 +65,7 @@ class MultiLabelTokenTrainer(Trainer):
             "bce_with_mecla",
             "bce_with_grouped_softmax",
             "bce_with_grouped_softmax_as_penalty",
+            "multilabel_dice_loss",
         ] = "bce",
         focal_loss_alpha: float = 0.25,
         focal_loss_gamma: float = 2.0,
@@ -70,6 +76,7 @@ class MultiLabelTokenTrainer(Trainer):
         mecla_apply_to_ends: bool = False,
         mecla_apply_to_mids: bool = False,
         mecla_token_dim: int = 1,
+        dice_loss_lambda: float = 1.0,
         **kwargs,
     ):
         """
@@ -95,7 +102,7 @@ class MultiLabelTokenTrainer(Trainer):
         pos_weight : torch.Tensor, optional
             A tensor of shape `[num_labels]` used to weight positive examples in
             `BCEWithLogitsLoss`. Useful for class imbalance.
-        loss_type : {"bce", "focal_loss", "bce_with_mecla", "bce_with_pairwise_mecla"}, default="bce"
+        loss_type : {"bce", "focal_loss", "bce_with_mecla", "bce_with_pairwise_mecla", "multilabel_dice_loss"}, default="bce"
             Type of loss function to use:
             - "bce": Standard binary cross-entropy with logits.
             - "focal_loss": Sigmoid focal loss for imbalanced data.
@@ -105,6 +112,10 @@ class MultiLabelTokenTrainer(Trainer):
               co-activation penalty** that discourages simultaneous activation of
               mutually exclusive label pairs via
               `sigmoid(z_i) * sigmoid(z_j)`.
+            - "multilabel_dice_loss": Dice loss.
+            - "bce_with_multilabel_dice_loss": BCE with multilabel Dice loss.
+            - "bce_with_mecla_and_multilabel_dice_loss": BCE with MECLA and
+              multilabel Dice loss.
 
         focal_loss_alpha : float, default=0.25
             Alpha parameter for focal loss (class weighting factor).
@@ -148,6 +159,7 @@ class MultiLabelTokenTrainer(Trainer):
         self.mecla_apply_to_ends = mecla_apply_to_ends
         self.mecla_token_dim = mecla_token_dim
         self.mecla_apply_to_mids = mecla_apply_to_mids
+        self.dice_loss_lambda = dice_loss_lambda
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         r"""
@@ -192,37 +204,6 @@ class MultiLabelTokenTrainer(Trainer):
           label-level granularity.
         - Final loss is normalized by the number of valid (non-padding) tokens.
 
-
-        Loss functions
-        -----
-
-        **BCE wit pairwise MECLA**
-
-        MECLA stands for Mutually Exclusive Classes Loss Amplification.
-
-        For `loss_type="bce_with_pairwise_mecla"`, the total loss is defined as
-          follows.
-
-          Let \( z_{b,l,c} \) denote the logit for batch element \( b \), token
-          position \( l \), and label \( c \). Let \( y_{b,l,c} \in \{0,1\} \) be
-          the corresponding ground-truth label. Let \( \sigma(\cdot) \) denote
-          the sigmoid function, and let \( \mathcal{P} \) be the set of mutually
-          exclusive label index pairs \( (i, j) \).
-
-          The per-token loss is given by:
-
-        $$
-        \ell_{b,l} = \sum_{c} \mathrm{BCEWithLogits}\!\left(z_{b,l,c}, y_{b,l,c}\right) + \lambda \sum_{(i,j)\in\mathcal{P}} \sigma\!\left(z_{b,l,i}\right) \sigma\!\left(z_{b,l,j}\right)
-        $$
-
-          where \( \lambda \) corresponds to `mecla_amplification_factor`.
-
-          The final scalar loss is obtained by averaging \( \ell_{b,l} \) over
-          all non-padding tokens using the attention mask.
-
-        - The pairwise MECLA term penalizes simultaneous high confidence in
-          mutually exclusive labels, independently of the ground-truth labels,
-          acting as a structural regularizer on the output space.
         """
 
         labels = inputs.pop("labels")  # float tensor [B, L, C] with 0/1
@@ -318,6 +299,56 @@ class MultiLabelTokenTrainer(Trainer):
             )
 
             loss = loss_fct(logits, labels.float(), inputs["attention_mask"])
+
+        elif self.loss_type == "multilabel_dice_loss":
+            loss_fct = MultilabelDiceLoss(
+                pos_weight=self.pos_weight,
+            )
+            loss = loss_fct(logits, labels.float(), inputs["attention_mask"])
+
+        elif self.loss_type == "bce_with_multilabel_dice_loss":
+            dice_loss_fct = MultilabelDiceLoss(
+                pos_weight=self.pos_weight,
+            )
+            dice_loss = dice_loss_fct(logits, labels.float(), inputs["attention_mask"])
+
+            bce_loss_fct = torch.nn.BCEWithLogitsLoss(
+                reduction="none", pos_weight=self.pos_weight
+            )
+            bce_loss = bce_loss_fct(logits, labels.float())  # [B, L, C]
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            bce_loss = (bce_loss * attn).sum() / attn.sum().clamp(min=1)
+
+            loss = bce_loss + self.dice_loss_lambda * dice_loss
+
+        elif self.loss_type == "bce_with_mecla_and_multilabel_dice_loss":
+            # Dice component
+            dice_loss_fct = MultilabelDiceLoss(
+                pos_weight=self.pos_weight,
+            )
+            dice_loss = dice_loss_fct(logits, labels.float(), inputs["attention_mask"])
+
+            # MECLA component
+            mecla_loss_fct = MECLALoss(
+                pos_weight=self.pos_weight,
+                mutually_exclusive_classes_indices=mutually_exclusive_classes_indices,
+                mecla_amplification_factor=self.mecla_amplification_factor,
+            )
+            mecla_loss = mecla_loss_fct(
+                logits,
+                labels.float(),
+                apply_to_mutually_exclusive=self.mecla_apply_to_mutually_exclusive,
+                apply_to_starts=self.mecla_apply_to_starts,
+                apply_to_ends=self.mecla_apply_to_ends,
+                apply_to_mids=self.mecla_apply_to_mids,
+                token_dim=self.mecla_token_dim,
+            )
+            # mask by attention
+            attn = inputs["attention_mask"].unsqueeze(-1)  # [B, L, 1]
+            mecla_loss = (mecla_loss * attn).sum() / attn.sum().clamp(min=1)
+
+            loss = mecla_loss + self.dice_loss_lambda * dice_loss
 
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")

@@ -2,7 +2,6 @@ from typing import List, Literal
 import transformers
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 import torch
-import numpy as np
 from copy import deepcopy
 from pathlib import Path
 from tqdm import tqdm
@@ -78,7 +77,7 @@ class AutoAnnotator:
             transformers.tokenization_utils_base.BatchEncoding
             | list[transformers.tokenization_utils_base.BatchEncoding]
         ),
-    ) -> np.ndarray:
+    ) -> torch.Tensor:
         if isinstance(records, transformers.tokenization_utils_base.BatchEncoding):
             records = [records]
 
@@ -142,7 +141,7 @@ class AutoAnnotator:
 
     def _map_prediction_to_tokens(
         self,
-        predictions: np.ndarray,  # [batch_size, seq_len, num_labels]
+        predictions: torch.Tensor,  # [batch_size, seq_len, num_labels]
         records: List[transformers.tokenization_utils_base.BatchEncoding],
     ) -> list[list[Annotation]]:
         mapped_annotations = []
