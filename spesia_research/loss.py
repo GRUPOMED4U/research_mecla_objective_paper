@@ -636,7 +636,7 @@ class MultilabelDiceLoss(nn.Module):
     def __init__(
         self,
         pos_weight: torch.Tensor | None = None,
-        epsilon: float = 1e-10,
+        epsilon: float = 1e-6,
         from_logits: bool = True,
     ):
         super().__init__()
